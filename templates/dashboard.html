@@ -1,0 +1,75 @@
+{{ define "content" }}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Status Overview
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">WhatsApp Client Status</h5>
+                <p class="card-text">
+                    {{ if .Clients }}
+                        You have {{ len .Clients }} client(s) configured.
+                        {{ if .DefaultClient }}Default client: <strong>{{ .DefaultClient }}</strong>{{ else }}No default client set.{{ end }}
+                    {{ else }}
+                        No clients configured yet. <a href="/ui/clients" class="btn btn-sm btn-primary">Add a client</a>
+                    {{ end }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {{ if .Clients }}
+        {{ range .Clients }}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    Client: {{ .ID }}
+                    {{ if eq $.DefaultClient .ID }}
+                        <span class="badge bg-success">Default</span>
+                    {{ end }}
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">
+                        {{ if .PushName }}{{ .PushName }}{{ else }}Not connected{{ end }}
+                    </h5>
+                    <p class="card-text">
+                        <strong>Status:</strong> 
+                        {{ if eq .Status "connected" }}
+                            <span class="text-success">Connected</span>
+                        {{ else if eq .Status "disconnected" }}
+                            <span class="text-warning">Disconnected</span>
+                        {{ else if eq .Status "logged_out" }}
+                            <span class="text-danger">Logged Out</span>
+                        {{ else if eq .Status "error" }}
+                            <span class="text-danger">Error</span>
+                        {{ else }}
+                            <span class="text-secondary">{{ .Status }}</span>
+                        {{ end }}
+                        <br>
+                        {{ if .PhoneNumber }}<strong>Phone:</strong> {{ .PhoneNumber }}<br>{{ end }}
+                        <strong>Last Activity:</strong> {{ .LastActivity.Format "2006-01-02 15:04:05" }}
+                    </p>
+                    <div class="d-flex">
+                        <a href="/ui/clients/{{ .ID }}" class="btn btn-primary me-2">Details</a>
+                        {{ if not .LoggedIn }}
+                            <a href="/ui/qrcode/{{ .ID }}" class="btn btn-success">QR Code</a>
+                        {{ else }}
+                            <a href="/ui/sendmessage/{{ .ID }}" class="btn btn-success">Send Message</a>
+                        {{ end }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{ end }}
+    {{ else }}
+        <div class="col-12">
+            <div class="alert alert-info">
+                No WhatsApp clients have been created yet. Get started by adding a client on the <a href="/ui/clients">Clients</a> page.
+            </div>
+        </div>
+    {{ end }}
+</div>
+{{ end }}

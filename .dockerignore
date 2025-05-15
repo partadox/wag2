@@ -1,0 +1,12 @@
+.git
+.gitignore
+.env
+*.exe
+whatsapp-data/
+README.md
+USAGE.md
+SEND_WHATSAPP_MESSAGES.md
+UPDATE_WHATSMEOW.md
+run.bat
+run_debug.bat
+run_release.bat

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send Message - WhatsApp Gateway</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="/static/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/ui/dashboard">WhatsApp Gateway</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/clients">Clients</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Send WhatsApp Message</h1>
+            <a href="/ui/clients/{{ .Client.ID }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Client
+            </a>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        Send Message using {{ .Client.ID }}
+                        {{ if eq .Client.Status "connected" }}
+                            <span class="badge bg-success">Connected</span>
+                        {{ else }}
+                            <span class="badge bg-danger">Not Connected</span>
+                        {{ end }}
+                    </div>
+                    <div class="card-body">
+                        {{ if ne .Client.Status "connected" }}
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle-fill"></i> 
+                                This client is not connected to WhatsApp. Messages may not be delivered.
+                            </div>
+                        {{ end }}
+                        
+                        <form id="send-message-form">
+                            <div class="mb-3">
+                                <label for="recipient" class="form-label">Recipient Phone Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">+</span>
+                                    <input type="text" class="form-control" id="recipient" placeholder="e.g. 628123456789 or 12345678901" required>
+                                </div>
+                                <div class="form-text">
+                                    Enter the full phone number including country code. The + sign is optional.
+                                    <ul>
+                                        <li>Format examples: <code>628123456789</code>, <code>+628123456789</code>, or <code>628123456789@s.whatsapp.net</code></li>
+                                        <li>Include country code (e.g., 62 for Indonesia, 1 for US/Canada)</li>
+                                        <li>Do not include spaces, dashes or other special characters</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="message" class="form-label">Message</label>
+                                <textarea class="form-control" id="message" rows="5" placeholder="Type your message here..." required></textarea>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send"></i> Send Message
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div id="result-container" class="mt-3" style="display: none;"></div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">
+                        Recent Messages
+                    </div>
+                    <div class="card-body">
+                        <div id="recent-messages">
+                            <p class="text-muted text-center">No recent messages to display.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Go Simple WhatsApp Gateway</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    
+    <!-- Debug indicator for troubleshooting -->
+    <div id="js-debug" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 5px; z-index: 9999;">
+        JS Running | Template: sendmessage_alt.html
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            const clientId = "{{ .Client.ID }}";
+            
+            // Message form submission
+            $('#send-message-form').on('submit', function(e) {
+                e.preventDefault();
+                
+                const recipient = $('#recipient').val().trim();
+                const message = $('#message').val().trim();
+                
+                if (!recipient || !message) {
+                    showResult('error', 'Please fill in all fields');
+                    return;
+                }
+                
+                // Disable form while sending
+                const submitBtn = $(this).find('button[type="submit"]');
+                const originalBtnText = submitBtn.html();
+                submitBtn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...').prop('disabled', true);
+                
+                // Send the message
+                $.ajax({
+                    url: '/api/clients/' + clientId + '/send',
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        recipient: recipient,
+                        message: message
+                    }),
+                    success: function(response) {
+                        showResult('success', 'Message sent successfully!');
+                        
+                        // Clear the message field (keep the recipient)
+                        $('#message').val('');
+                    },
+                    error: function(xhr) {
+                        let errorMsg = 'Error sending message';
+                        
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            errorMsg += ': ' + xhr.responseJSON.error;
+                            
+                            // Enhanced error handling for specific error messages
+                            if (errorMsg.includes('invalid recipient: not a user JID')) {
+                                errorMsg = 'Invalid phone number format. Please use the format shown in the examples above.';
+                            } else if (errorMsg.includes('invalid recipient')) {
+                                errorMsg = 'Invalid recipient phone number. Make sure to include the country code.';
+                            } else if (errorMsg.includes('not connected') || errorMsg.includes('not logged in')) {
+                                errorMsg = 'WhatsApp client is not connected. Please reconnect using the QR code first.';
+                            }
+                        } else {
+                            errorMsg += ': Unknown error';
+                        }
+                        
+                        showResult('error', errorMsg);
+                        console.error('Send message error:', xhr.responseText);
+                    },
+                    complete: function() {
+                        // Re-enable the form
+                        submitBtn.html(originalBtnText).prop('disabled', false);
+                    }
+                });
+            });
+            
+            // Function to show result message
+            function showResult(type, message) {
+                const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                const icon = type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
+                
+                $('#result-container')
+                    .html(`<div class="alert ${alertClass}"><i class="bi ${icon} me-2"></i>${message}</div>`)
+                    .show();
+                
+                // Scroll to the result
+                $('html, body').animate({
+                    scrollTop: $('#result-container').offset().top - 100
+                }, 200);
+                
+                // Hide after 5 seconds if it's a success
+                if (type === 'success') {
+                    setTimeout(function() {
+                        $('#result-container').fadeOut();
+                    }, 5000);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

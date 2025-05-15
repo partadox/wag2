@@ -1,0 +1,260 @@
+{{ define "content" }}
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Client Information
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ .Client.ID }}</h5>
+                <div class="mb-3">
+                    <strong>Status:</strong> 
+                    {{ if eq .Client.Status "connected" }}
+                        <span class="text-success">Connected</span>
+                    {{ else if eq .Client.Status "disconnected" }}
+                        <span class="text-warning">Disconnected</span>
+                    {{ else if eq .Client.Status "logged_out" }}
+                        <span class="text-danger">Logged Out</span>
+                    {{ else if eq .Client.Status "error" }}
+                        <span class="text-danger">Error</span>
+                        {{ if .Client.ConnectionError }}
+                            <br><small class="text-danger">{{ .Client.ConnectionError }}</small>
+                        {{ end }}
+                    {{ else }}
+                        <span class="text-secondary">{{ .Client.Status }}</span>
+                    {{ end }}
+                </div>
+                <div class="mb-3">
+                    <strong>Name:</strong> {{ if .Client.PushName }}{{ .Client.PushName }}{{ else }}-{{ end }}
+                </div>
+                <div class="mb-3">
+                    <strong>Phone Number:</strong> {{ if .Client.PhoneNumber }}{{ .Client.PhoneNumber }}{{ else }}-{{ end }}
+                </div>
+                <div class="mb-3">
+                    <strong>Last Activity:</strong> {{ .Client.LastActivity.Format "2006-01-02 15:04:05" }}
+                </div>
+                <div class="mb-3">
+                    <strong>Connection:</strong> {{ if .Client.Connected }}Connected{{ else }}Disconnected{{ end }}
+                </div>
+                <div class="mb-3">
+                    <strong>Login:</strong> {{ if .Client.LoggedIn }}Logged In{{ else }}Logged Out{{ end }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Actions
+            </div>
+            <div class="card-body">
+                {{ if .Client.LoggedIn }}
+                    <div class="mb-3">
+                        <a href="/ui/sendmessage/{{ .Client.ID }}" class="btn btn-success">Send Message</a>
+                    </div>
+                    <div class="mb-3">
+                        <button id="disconnect-btn" class="btn btn-warning">Disconnect</button>
+                    </div>
+                    <div class="mb-3">
+                        <button id="logout-btn" class="btn btn-danger">Logout</button>
+                    </div>
+                {{ else }}
+                    {{ if .Client.Connected }}
+                        <div class="mb-3">
+                            <button id="disconnect-btn" class="btn btn-warning">Disconnect</button>
+                        </div>
+                    {{ else }}
+                        <div class="mb-3">
+                            <button id="connect-btn" class="btn btn-primary">Connect</button>
+                        </div>
+                    {{ end }}
+                    <div class="mb-3">
+                        <a href="/ui/qrcode/{{ .Client.ID }}" class="btn btn-success">QR Code Authentication</a>
+                    </div>
+                {{ end }}
+                <div class="mb-3">
+                    <button id="refresh-btn" class="btn btn-info">Refresh Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Webhook Configuration -->
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    Webhook Configuration
+                </div>
+                <div class="card-body">
+                    <div id="webhook-container">
+                        <div class="alert alert-info">
+                            <p><i class="bi bi-info-circle"></i> Webhooks allow you to receive real-time notifications when messages are received by this WhatsApp client.</p>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="webhook-enabled">
+                            <label class="form-check-label" for="webhook-enabled">Enable Webhooks</label>
+                        </div>
+                        
+                        <div id="webhook-url-container" class="mb-3" style="display: none;">
+                            <label for="webhook-url" class="form-label">Webhook URL</label>
+                            <input type="url" class="form-control" id="webhook-url" placeholder="https://your-server.com/webhook">
+                            <div class="form-text">The URL where webhook notifications will be sent as HTTP POST requests.</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button id="save-webhook-btn" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Webhook Configuration
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+    $(document).ready(function() {
+        const clientId = "{{ .Client.ID }}";
+
+        // Load webhook configuration
+        loadWebhookConfig();
+
+        $('#connect-btn').on('click', function() {
+            $.ajax({
+                url: '/api/clients/' + clientId + '/connect',
+                method: 'POST',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                success: function() {
+                    window.location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error connecting client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        });
+
+        $('#disconnect-btn').on('click', function() {
+            $.ajax({
+                url: '/api/clients/' + clientId + '/disconnect',
+                method: 'POST',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                success: function() {
+                    window.location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error disconnecting client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        });
+
+        $('#logout-btn').on('click', function() {
+            if (!confirm('Are you sure you want to logout? You will need to scan the QR code again.')) {
+                return;
+            }
+            
+            $.ajax({
+                url: '/api/clients/' + clientId + '/logout',
+                method: 'POST',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                success: function() {
+                    window.location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error logging out client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        });
+
+        $('#refresh-btn').on('click', function() {
+            window.location.reload();
+        });
+
+        // Helper function to get API key
+        function getApiKey() {
+            return localStorage.getItem('api_key') || prompt('Please enter your API key:');
+        }
+        
+        // Toggle webhook URL input visibility
+        $('#webhook-enabled').on('change', function() {
+            if ($(this).is(':checked')) {
+                $('#webhook-url-container').show();
+            } else {
+                $('#webhook-url-container').hide();
+            }
+        });
+        
+        // Save webhook configuration
+        $('#save-webhook-btn').on('click', function() {
+            const enabled = $('#webhook-enabled').is(':checked');
+            const url = $('#webhook-url').val();
+            
+            // Validate URL if enabled
+            if (enabled && !url) {
+                alert('Please enter a webhook URL');
+                return;
+            }
+            
+            saveWebhookConfig(enabled, url);
+        });
+        
+        // Load webhook configuration from API
+        function loadWebhookConfig() {
+            $.ajax({
+                url: '/api/clients/' + clientId + '/webhook',
+                method: 'GET',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                success: function(response) {
+                    $('#webhook-enabled').prop('checked', response.enabled);
+                    $('#webhook-url').val(response.url);
+                    
+                    // Show/hide URL input based on enabled state
+                    if (response.enabled) {
+                        $('#webhook-url-container').show();
+                    } else {
+                        $('#webhook-url-container').hide();
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error loading webhook config:', xhr.responseJSON?.error || 'Unknown error');
+                }
+            });
+        }
+        
+        // Save webhook configuration to API
+        function saveWebhookConfig(enabled, url) {
+            $.ajax({
+                url: '/api/clients/' + clientId + '/webhook',
+                method: 'POST',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    enabled: enabled,
+                    url: url
+                }),
+                success: function() {
+                    alert('Webhook configuration saved successfully');
+                },
+                error: function(xhr) {
+                    alert('Error saving webhook configuration: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        }
+    });
+</script>
+{{ end }}

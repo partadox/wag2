@@ -1,0 +1,18 @@
+{{ define "content" }}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Phone Pairing
+            </div>
+            <div class="card-body text-center">
+                <div class="alert alert-warning">
+                    <h4><i class="bi bi-exclamation-triangle-fill"></i> Feature Not Available</h4>
+                    <p>Phone pairing is not available in the current version of the WhatsApp library.</p>
+                    <p>Please use <a href="/ui/qrcode/{{ .Client.ID }}" class="alert-link">QR Code Authentication</a> instead.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

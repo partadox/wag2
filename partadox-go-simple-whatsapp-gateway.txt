@@ -1,0 +1,5325 @@
+Directory structure:
+└── partadox-go-simple-whatsapp-gateway/
+    ├── README.md
+    ├── DEPLOYMENT.md
+    ├── docker-compose.yml
+    ├── Dockerfile
+    ├── go.mod
+    ├── go.sum
+    ├── main.go
+    ├── run.bat
+    ├── run_debug.bat
+    ├── run_release.bat
+    ├── SEND_WHATSAPP_MESSAGES.md
+    ├── UPDATE_WHATSMEOW.md
+    ├── USAGE.md
+    ├── .dockerignore
+    ├── config/
+    │   └── config.go
+    ├── handlers/
+    │   ├── auth.go
+    │   ├── clients.go
+    │   ├── handlers.go
+    │   ├── ui.go
+    │   └── whatsapp.go
+    ├── static/
+    │   ├── css/
+    │   │   └── styles.css
+    │   └── js/
+    │       └── main.js
+    ├── templates/
+    │   ├── client_detail.html
+    │   ├── client_detail_alt.html
+    │   ├── clients.html
+    │   ├── clients_alt.html
+    │   ├── dashboard.html
+    │   ├── dashboard_alt.html
+    │   ├── layout.html
+    │   ├── login_alt.html
+    │   ├── phonepairing.html
+    │   ├── qrcode.html
+    │   ├── qrcode_alt.html
+    │   ├── qrcode_alt2.html
+    │   ├── sendmessage.html
+    │   ├── sendmessage_alt.html
+    │   ├── test.html
+    │   └── test_alt.html
+    └── whatsapp/
+        ├── client.go
+        └── client_manager.go
+
+================================================
+FILE: README.md
+================================================
+# Go Simple WhatsApp Gateway
+
+A simple, self-hosted WhatsApp Gateway that provides both a RESTful API and web UI to manage multiple WhatsApp accounts.
+
+## Warning
+
+**IMPORTANT DISCLAIMER**: This application is not officially associated with Meta or WhatsApp and is created for educational purposes only. Since this is open source software, please use it responsibly:
+
+- Do not use for spam or any malicious activities
+- Do not use for any illegal purposes
+- Respect WhatsApp's terms of service
+
+If your phone number gets banned by WhatsApp or any other negative consequences occur, the developers of this software bear no responsibility. Use at your own risk.
+
+## Features
+
+- Multiple WhatsApp client support
+- RESTful API for integration with other systems
+- Web UI for easy management
+- QR code authentication
+- Message sending
+- Persistent sessions
+
+## Installation
+
+### Prerequisites
+
+- Go 1.20 or higher
+- SQLite3
+
+### Steps
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/go-simple-whatsapp-gateway2.git
+   cd go-simple-whatsapp-gateway2
+   ```
+
+2. Configure the application:
+   ```
+   cp .env.example .env
+   ```
+   Edit the `.env` file to set your own API key and other settings.
+
+3. Build and run the application:
+   ```
+   go build
+   ./go-simple-whatsapp-gateway2
+   ```
+
+   Or use the provided batch files:
+   ```
+   run.bat             # Regular mode
+   run_debug.bat       # Debug mode with verbose logging
+   run_release.bat     # Release mode (optimized)
+   ```
+
+## Deployment
+
+### Deploy on Coolify
+
+You can easily deploy this application on [Coolify](https://coolify.io/), a self-hostable Heroku/Netlify alternative:
+
+1. Set up a Coolify instance following their documentation
+2. Create a new service and select "Git Repository"
+3. Connect your fork of this repository
+4. Configure the build settings:
+   - Build Command: `go build -o app`
+   - Start Command: `./app`
+5. Add the environment variables from `.env` file
+6. Deploy the application
+
+Coolify will automatically build and run your WhatsApp Gateway, making it accessible through the provided URL.
+
+## Usage
+
+### Web UI
+
+1. Open your browser and navigate to: `http://localhost:8080`
+2. You'll be prompted to enter your API key (default: `changeme` from .env file)
+3. Create a new WhatsApp client
+4. Scan the QR code with your phone's WhatsApp app
+5. Start sending messages
+
+### API Endpoints
+
+Authentication is required for all API endpoints. You can pass your API key in one of two ways:
+- Via the `X-API-Key` header
+- Via the `api_key` query parameter
+
+#### Main API Endpoints:
+
+- List Clients: `GET /api/clients`
+- Create Client: `POST /api/clients`
+- Get Client Status: `GET /api/clients/{id}`
+- Delete Client: `DELETE /api/clients/{id}`
+- Generate QR Code: `GET /api/clients/{id}/qr`
+- Send Message: `POST /api/clients/{id}/send`
+- Logout Client: `POST /api/clients/{id}/logout`
+
+### Sending Messages
+
+When sending messages, the recipient phone number must be in one of these formats:
+- `628123456789` (no plus sign)
+- `+628123456789` (with plus sign)
+- `628123456789@s.whatsapp.net` (full JID format)
+
+Always include the country code (e.g., 62 for Indonesia, 1 for US/Canada).
+
+Example API request:
+```json
+POST /api/clients/{id}/send
+{
+  "recipient": "628123456789",
+  "message": "Hello, this is a test message!"
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Blank white page**: If you see a blank white page when accessing the web UI, check:
+   - Browser console for JavaScript errors
+   - Application logs for backend errors
+   - Try using the `/test` endpoint to verify template rendering
+
+2. **QR code generation errors**: These can occur when:
+   - The WhatsApp Web client is outdated (update the whatsmeow library)
+   - The client is already logged in (logout first)
+   - Connection issues (check network connectivity)
+
+3. **Message sending errors**: Usually caused by:
+   - Incorrect phone number format (make sure to use correct format with country code)
+   - Not connected to WhatsApp (reconnect using QR code)
+   - Invalid recipient (check if the number exists on WhatsApp)
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- [whatsmeow](https://github.com/tulir/whatsmeow) - The Go WhatsApp library
+- [Gin Web Framework](https://github.com/gin-gonic/gin) - The web framework used
+- The Code Generated by Claude 3.7 Sonnet
+
+
+
+================================================
+FILE: DEPLOYMENT.md
+================================================
+# Deployment Guide
+
+This document explains how to deploy the Go Simple WhatsApp Gateway on various platforms.
+
+## Deploy on VPS
+
+### Using Docker (Recommended)
+
+1. Clone the repository on your VPS:
+   ```bash
+   git clone https://github.com/yourusername/go-simple-whatsapp-gateway2.git
+   cd go-simple-whatsapp-gateway2
+   ```
+
+2. Update the API key in the docker-compose.yml file (replace "changeme" with your desired API key)
+
+3. Build and start the container:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. The application will be available at http://your-server-ip:8080
+
+### Using Docker Manually
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/go-simple-whatsapp-gateway2.git
+   cd go-simple-whatsapp-gateway2
+   ```
+
+2. Build the Docker image:
+   ```bash
+   docker build -t whatsapp-gateway .
+   ```
+
+3. Run the container:
+   ```bash
+   docker run -d \
+     --name whatsapp-gateway \
+     -p 8080:8080 \
+     -e API_KEY=your_api_key \
+     -v whatsapp-data:/app/whatsapp-data \
+     whatsapp-gateway
+   ```
+
+4. The application will be available at http://your-server-ip:8080
+
+### Without Docker
+
+1. Install Go 1.20 or higher on your VPS
+
+2. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/go-simple-whatsapp-gateway2.git
+   cd go-simple-whatsapp-gateway2
+   ```
+
+3. Build the application:
+   ```bash
+   go build
+   ```
+
+4. Create an .env file with your configuration:
+   ```
+   LISTEN_ADDR=:8080
+   API_KEY=your_api_key
+   WHATSAPP_DATA_DIR=./whatsapp-data
+   ```
+
+5. Run the application:
+   ```bash
+   ./go-simple-whatsapp-gateway2
+   ```
+
+6. For production use, consider using a process manager like systemd or supervisor to keep the application running.
+
+## Deploy on Coolify
+
+1. Set up a Coolify instance following their documentation
+
+2. Create a new service and select "Git Repository"
+
+3. Connect your fork of this repository
+
+4. Configure the build settings:
+   - **Build Pack**: Docker
+   - **Environment Variables**:
+     - API_KEY: your_api_key
+     - LISTEN_ADDR: :8080
+     - WHATSAPP_DATA_DIR: /app/whatsapp-data
+     - GIN_MODE: release
+
+5. Deploy the application
+
+6. Coolify will use the Dockerfile in the .coolify directory, build the Docker image, and run it automatically.
+
+## Troubleshooting
+
+### Template Not Found Error
+
+If you see an error like `html/template: pattern matches no files: templates/*`, it means the application can't find the template files. This may happen if:
+
+1. The templates folder is not in the same directory as the executable
+2. Permissions issues prevent the application from reading the templates directory
+3. The path is hardcoded to a Windows-style path (D:/ etc.) which doesn't exist on Linux
+
+Solution:
+- Make sure the templates directory is in the correct location
+- Check file permissions
+- Use relative paths like `./templates/*` instead of absolute paths
+
+### Database Errors
+
+If you encounter database errors, check:
+1. The whatsapp-data directory exists and is writable
+2. The WHATSAPP_DATA_DIR environment variable is set correctly
+3. If using Docker, ensure you're using a volume to persist data
+
+### Connection Issues
+
+If clients fail to connect to WhatsApp, check:
+1. Your server has internet access
+2. Firewall rules are not blocking outgoing connections
+3. The whatsmeow library is up to date (check UPDATE_WHATSMEOW.md)
+
+
+================================================
+FILE: docker-compose.yml
+================================================
+version: '3'
+
+services:
+  whatsapp-gateway:
+    build: .
+    container_name: go-simple-whatsapp-gateway
+    ports:
+      - "8080:8080"
+    volumes:
+      - whatsapp-data:/app/whatsapp-data
+    environment:
+      - LISTEN_ADDR=:8080
+      - API_KEY=changeme
+      - WHATSAPP_DATA_DIR=/app/whatsapp-data
+    restart: unless-stopped
+
+volumes:
+  whatsapp-data:
+    driver: local
+
+
+================================================
+FILE: Dockerfile
+================================================
+# Stage 1: Build stage
+FROM golang:1.24-alpine AS builder
+
+# Install build dependencies for SQLite
+RUN apk add --no-cache gcc musl-dev sqlite-dev git
+
+WORKDIR /app
+
+# Copy semua file
+COPY . .
+
+# Build dengan CGO_ENABLED=1
+RUN CGO_ENABLED=1 go build -o app
+
+# Stage 2: Runtime stage
+FROM alpine:latest
+
+# Install runtime dependencies
+RUN apk --no-cache add ca-certificates tzdata sqlite
+
+# Siapkan direktori aplikasi
+WORKDIR /app
+
+# Copy binary dan file-file yang diperlukan
+COPY --from=builder /app/app .
+COPY --from=builder /app/templates ./templates
+COPY --from=builder /app/static ./static
+# COPY --from=builder /app/.env ./.env
+
+# Buat direktori data WhatsApp
+RUN mkdir -p /app/whatsapp-data
+
+# Set izin yang benar
+RUN chmod +x /app/app
+
+# Expose port aplikasi
+EXPOSE 8080
+
+# Set environment variables
+ENV GIN_MODE=release
+ENV LISTEN_ADDR=:8080
+ENV WHATSAPP_DATA_DIR=/app/whatsapp-data
+
+# Jalankan aplikasi
+CMD ["./app"]
+
+
+================================================
+FILE: go.mod
+================================================
+module go-simple-whatsapp-gateway2
+
+go 1.23.0
+
+toolchain go1.24.2
+
+require (
+	github.com/gin-gonic/gin v1.9.1
+	github.com/joho/godotenv v1.5.1
+	github.com/mattn/go-sqlite3 v1.14.24
+	go.mau.fi/whatsmeow v0.0.0-20250501130609-4c93ee4e6efa
+	google.golang.org/protobuf v1.36.6
+)
+
+require (
+	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/bytedance/sonic v1.9.1 // indirect
+	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-playground/validator/v10 v10.14.0 // indirect
+	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
+	github.com/leodido/go-urn v1.2.4 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
+	github.com/petermattis/goid v0.0.0-20250319124200-ccd6737f222a // indirect
+	github.com/rs/zerolog v1.34.0 // indirect
+	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
+	github.com/ugorji/go/codec v1.2.11 // indirect
+	go.mau.fi/libsignal v0.1.2 // indirect
+	go.mau.fi/util v0.8.6 // indirect
+	golang.org/x/arch v0.3.0 // indirect
+	golang.org/x/crypto v0.37.0 // indirect
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+	golang.org/x/net v0.39.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/text v0.24.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
+
+
+
+================================================
+FILE: go.sum
+================================================
+filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
+filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
+github.com/DATA-DOG/go-sqlmock v1.5.2 h1:OcvFkGmslmlZibjAjaHm3L//6LiuBgolP7OputlJIzU=
+github.com/DATA-DOG/go-sqlmock v1.5.2/go.mod h1:88MAG/4G7SMwSE3CeA0ZKzrT5CiOU3OJ+JlNzwDqpNU=
+github.com/bytedance/sonic v1.5.0/go.mod h1:ED5hyg4y6t3/9Ku1R6dU/4KyJ48DZ4jPhfY1O2AihPM=
+github.com/bytedance/sonic v1.9.1 h1:6iJ6NqdoxCDr6mbY8h18oSO+cShGSMRGCEo7F2h0x8s=
+github.com/bytedance/sonic v1.9.1/go.mod h1:i736AoUSYt75HyZLoJW9ERYxcy6eaN6h4BZXU064P/U=
+github.com/chenzhuoyu/base64x v0.0.0-20211019084208-fb5309c8db06/go.mod h1:DH46F32mSOjUmXrMHnKwZdA8wcEefY7UVqBKYGjpdQY=
+github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 h1:qSGYFH7+jGhDF8vLC+iwCD4WpbV1EBDSzWkJODFLams=
+github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311/go.mod h1:b583jCggY9gE99b6G5LEC39OIiVsWj+R97kbl5odCEk=
+github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
+github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
+github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/gabriel-vasile/mimetype v1.4.2 h1:w5qFW6JKBz9Y393Y4q372O9A7cUSequkh1Q7OhCmWKU=
+github.com/gabriel-vasile/mimetype v1.4.2/go.mod h1:zApsH/mKG4w07erKIaJPFiX0Tsq9BFQgN3qGY5GnNgA=
+github.com/gin-contrib/sse v0.1.0 h1:Y/yl/+YNO8GZSjAhjMsSuLt29uWRFHdHYUb5lYOV9qE=
+github.com/gin-contrib/sse v0.1.0/go.mod h1:RHrZQHXnP2xjPF+u1gW/2HnVO7nvIa9PG3Gm+fLHvGI=
+github.com/gin-gonic/gin v1.9.1 h1:4idEAncQnU5cB7BeOkPtxjfCSye0AAm1R0RVIqJ+Jmg=
+github.com/gin-gonic/gin v1.9.1/go.mod h1:hPrL7YrpYKXt5YId3A/Tnip5kqbEAP+KLuI3SUcPTeU=
+github.com/go-playground/assert/v2 v2.2.0 h1:JvknZsQTYeFEAhQwI4qEt9cyV5ONwRHC+lYKSsYSR8s=
+github.com/go-playground/assert/v2 v2.2.0/go.mod h1:VDjEfimB/XKnb+ZQfWdccd7VUvScMdVu0Titje2rxJ4=
+github.com/go-playground/locales v0.14.1 h1:EWaQ/wswjilfKLTECiXz7Rh+3BjFhfDFKv/oXslEjJA=
+github.com/go-playground/locales v0.14.1/go.mod h1:hxrqLVvrK65+Rwrd5Fc6F2O76J/NuW9t0sjnWqG1slY=
+github.com/go-playground/universal-translator v0.18.1 h1:Bcnm0ZwsGyWbCzImXv+pAJnYK9S473LQFuzCbDbfSFY=
+github.com/go-playground/universal-translator v0.18.1/go.mod h1:xekY+UJKNuX9WP91TpwSH2VMlDf28Uj24BCp08ZFTUY=
+github.com/go-playground/validator/v10 v10.14.0 h1:vgvQWe3XCz3gIeFDm/HnTIbj6UGmg/+t63MyGU2n5js=
+github.com/go-playground/validator/v10 v10.14.0/go.mod h1:9iXMNT7sEkjXb0I+enO7QXmzG6QCsPWY4zveKFVRSyU=
+github.com/goccy/go-json v0.10.2 h1:CrxCmQqYDkv1z7lO7Wbh2HN93uovUHgrECaO5ZrCXAU=
+github.com/goccy/go-json v0.10.2/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MGFi0w8I=
+github.com/godbus/dbus/v5 v5.0.4/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
+github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
+github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
+github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
+github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
+github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
+github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
+github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
+github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
+github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
+github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
+github.com/klauspost/cpuid/v2 v2.0.9/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
+github.com/klauspost/cpuid/v2 v2.2.4 h1:acbojRNwl3o09bUq+yDCtZFc1aiwaAAxtcn8YkZXnvk=
+github.com/klauspost/cpuid/v2 v2.2.4/go.mod h1:RVVoqg1df56z8g3pUjL/3lE5UfnlrJX8tyFgg4nqhuY=
+github.com/leodido/go-urn v1.2.4 h1:XlAE/cm/ms7TE/VMVoduSpNBoyc2dOxHs5MZSwAN63Q=
+github.com/leodido/go-urn v1.2.4/go.mod h1:7ZrI8mTSeBSHl/UaRyKQW1qZeMgak41ANeCNaVckg+4=
+github.com/mattn/go-colorable v0.1.13/go.mod h1:7S9/ev0klgBDR4GtXTXX8a3vIGJpMovkB8vQcUbaXHg=
+github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=
+github.com/mattn/go-colorable v0.1.14/go.mod h1:6LmQG8QLFO4G5z1gPvYEzlUgJ2wF+stgPZH1UqBm1s8=
+github.com/mattn/go-isatty v0.0.16/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/yFXSvRLM=
+github.com/mattn/go-isatty v0.0.19/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
+github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
+github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
+github.com/mattn/go-sqlite3 v1.14.24 h1:tpSp2G2KyMnnQu99ngJ47EIkWVmliIizyZBfPrBWDRM=
+github.com/mattn/go-sqlite3 v1.14.24/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
+github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
+github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=
+github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
+github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
+github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
+github.com/pelletier/go-toml/v2 v2.0.8 h1:0ctb6s9mE31h0/lhu+J6OPmVeDxJn+kYnJc2jZR9tGQ=
+github.com/pelletier/go-toml/v2 v2.0.8/go.mod h1:vuYfssBdrU2XDZ9bYydBu6t+6a6PYNcZljzZR9VXg+4=
+github.com/petermattis/goid v0.0.0-20250319124200-ccd6737f222a h1:S+AGcmAESQ0pXCUNnRH7V+bOUIgkSX5qVt2cNKCrm0Q=
+github.com/petermattis/goid v0.0.0-20250319124200-ccd6737f222a/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
+github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
+github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/rs/xid v1.6.0/go.mod h1:7XoLgs4eV+QndskICGsho+ADou8ySMSjJKDIan90Nz0=
+github.com/rs/zerolog v1.34.0 h1:k43nTLIwcTVQAncfCw4KZ2VY6ukYoZaBPNOE8txlOeY=
+github.com/rs/zerolog v1.34.0/go.mod h1:bJsvje4Z08ROH4Nhs5iH600c3IkWhwp44iRc54W6wYQ=
+github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
+github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
+github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
+github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
+github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
+github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+github.com/stretchr/testify v1.8.3/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
+github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
+github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
+github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS4MhqMhdFk5YI=
+github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
+github.com/ugorji/go/codec v1.2.11 h1:BMaWp1Bb6fHwEtbplGBGJ498wD+LKlNSl25MjdZY4dU=
+github.com/ugorji/go/codec v1.2.11/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
+go.mau.fi/libsignal v0.1.2 h1:Vs16DXWxSKyzVtI+EEXLCSy5pVWzzCzp/2eqFGvLyP0=
+go.mau.fi/libsignal v0.1.2/go.mod h1:JpnLSSJptn/s1sv7I56uEMywvz8x4YzxeF5OzdPb6PE=
+go.mau.fi/util v0.8.6 h1:AEK13rfgtiZJL2YsNK+W4ihhYCuukcRom8WPP/w/L54=
+go.mau.fi/util v0.8.6/go.mod h1:uNB3UTXFbkpp7xL1M/WvQks90B/L4gvbLpbS0603KOE=
+go.mau.fi/whatsmeow v0.0.0-20250501130609-4c93ee4e6efa h1:+bQKfMtnhX2jVoCSaneH4Ctk51IVT1K2gvjyqfFjVW0=
+go.mau.fi/whatsmeow v0.0.0-20250501130609-4c93ee4e6efa/go.mod h1:NlPtoLdpX3RnltqCTCZQ6kIUfprqLirtSK1gHvwoNx0=
+golang.org/x/arch v0.0.0-20210923205945-b76863e36670/go.mod h1:5om86z9Hs0C8fWVUuoMHwpExlXzs5Tkyp9hOrfG7pp8=
+golang.org/x/arch v0.3.0 h1:02VY4/ZcO/gBOH6PUaoiptASxtXU10jazRCP865E97k=
+golang.org/x/arch v0.3.0/go.mod h1:5om86z9Hs0C8fWVUuoMHwpExlXzs5Tkyp9hOrfG7pp8=
+golang.org/x/crypto v0.37.0 h1:kJNSjF/Xp7kU0iB2Z+9viTPMW4EqqsrywMXLJOOsXSE=
+golang.org/x/crypto v0.37.0/go.mod h1:vg+k43peMZ0pUMhYmVAWysMK35e6ioLh3wB8ZCAfbVc=
+golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 h1:R84qjqJb5nVJMxqWYb3np9L5ZsaDtB+a39EqjV0JSUM=
+golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0/go.mod h1:S9Xr4PYopiDyqSyp5NjCrhFrqg6A5zA2E/iPHPhqnS8=
+golang.org/x/net v0.39.0 h1:ZCu7HMWDxpXpaiKdhzIfaltL9Lp31x/3fCP11bc6/fY=
+golang.org/x/net v0.39.0/go.mod h1:X7NRbYVEA+ewNkCNyJ513WmMdQ3BineSwVtN2zD/d+E=
+golang.org/x/sys v0.0.0-20220704084225-05e143d24a9e/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.12.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.32.0 h1:s77OFDvIQeibCmezSnk/q6iAfkdiQaJi4VzroCFrN20=
+golang.org/x/sys v0.32.0/go.mod h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=
+golang.org/x/text v0.24.0 h1:dd5Bzh4yt5KYA8f9CJHCP4FB4D51c2c6JvN37xJJkJ0=
+golang.org/x/text v0.24.0/go.mod h1:L8rBsPeo2pSS+xqN0d5u2ikmjtmoJbDBT1b7nHvFCdU=
+google.golang.org/protobuf v1.36.6 h1:z1NpPI8ku2WgiWnf+t9wTPsn6eP1L7ksHUlkfLvd9xY=
+google.golang.org/protobuf v1.36.6/go.mod h1:jduwjTPXsFjZGTmRluh+L6NjiWu7pchiJ2/5YcXBHnY=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
+gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+rsc.io/pdf v0.1.1/go.mod h1:n8OzWcQ6Sp37PL01nO98y4iUCRdTGarVfzxY20ICaU4=
+
+
+
+================================================
+FILE: main.go
+================================================
+package main
+
+import (
+	"flag"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+
+	"go-simple-whatsapp-gateway2/config"
+	"go-simple-whatsapp-gateway2/handlers"
+	"go-simple-whatsapp-gateway2/whatsapp"
+)
+
+func main() {
+	// Load .env file if exists
+	_ = godotenv.Load()
+
+	// Parse command line flags
+	configFile := flag.String("config", "", "Path to config file")
+	flag.Parse()
+
+	// Initialize configuration
+	cfg, err := config.Load(*configFile)
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	// Setup client manager
+	clientManager := whatsapp.NewClientManager(cfg.WhatsappDataDir)
+	defer clientManager.Close()
+
+	// Load saved clients
+	if err := clientManager.LoadClients(); err != nil {
+		log.Printf("Warning: Failed to load saved clients: %v", err)
+	}
+
+	// Setup router
+	router := gin.Default()
+	
+	// Load templates with relative path
+	router.LoadHTMLGlob("./templates/*")
+	
+	// Static files with relative path
+	router.Static("/static", "./static")
+
+	// Setup handlers
+	handlers.RegisterHandlers(router, clientManager, cfg.APIKey)
+
+	// Add debug logging
+	log.Printf("Config: ListenAddr=%s, API Key=%s, WhatsappDataDir=%s", cfg.ListenAddr, cfg.APIKey, cfg.WhatsappDataDir)
+	log.Printf("Template path: %s", "D:/Dev/go-simple-whatsapp-gateway2/templates/*")
+	log.Printf("Static file path: %s", "D:/Dev/go-simple-whatsapp-gateway2/static")
+
+	// Start server in a goroutine
+	go func() {
+		log.Printf("Starting server on %s", cfg.ListenAddr)
+		if err := router.Run(cfg.ListenAddr); err != nil {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down server...")
+	
+	// Save client states before exit
+	if err := clientManager.SaveClients(); err != nil {
+		log.Printf("Warning: Failed to save clients: %v", err)
+	}
+
+	log.Println("Server exited")
+}
+
+
+
+================================================
+FILE: run.bat
+================================================
+@echo off
+echo Building WhatsApp Gateway...
+go build
+if %ERRORLEVEL% neq 0 (
+    echo Build failed!
+    pause
+    exit /b %ERRORLEVEL%
+)
+echo Build successful! Starting server...
+echo.
+go-simple-whatsapp-gateway2.exe
+pause
+
+
+================================================
+FILE: run_debug.bat
+================================================
+@echo off
+echo Building WhatsApp Gateway with debug logging...
+go build -o go-simple-whatsapp-gateway2-debug.exe
+if %ERRORLEVEL% neq 0 (
+    echo Build failed!
+    pause
+    exit /b %ERRORLEVEL%
+)
+echo Build successful! Starting server with debug logging...
+echo.
+set GIN_MODE=debug
+go-simple-whatsapp-gateway2-debug.exe
+pause
+
+
+================================================
+FILE: run_release.bat
+================================================
+@echo off
+echo Building WhatsApp Gateway in release mode...
+set GIN_MODE=release
+go build -ldflags="-s -w" -o go-simple-whatsapp-gateway2-release.exe
+if %ERRORLEVEL% neq 0 (
+    echo Build failed!
+    pause
+    exit /b %ERRORLEVEL%
+)
+echo Build successful! Starting server in release mode...
+echo.
+echo =========================================
+echo Go Simple WhatsApp Gateway (Release Mode)
+echo =========================================
+echo.
+echo Access the web UI at: http://localhost:8080
+echo Default API Key: changeme (from .env file)
+echo.
+go-simple-whatsapp-gateway2-release.exe
+pause
+
+
+================================================
+FILE: SEND_WHATSAPP_MESSAGES.md
+================================================
+# Sending WhatsApp Messages Guide
+
+This guide explains how to properly send WhatsApp messages using the Go Simple WhatsApp Gateway.
+
+## Phone Number Format
+
+When sending WhatsApp messages, it's important to format the recipient's phone number correctly. The following formats are accepted:
+
+1. **Standard International Format**: 
+   `628123456789` or `+628123456789`
+   - Include the country code (e.g., 62 for Indonesia, 1 for US/Canada)
+   - Do not include spaces, dashes, or special characters
+   - The plus sign (+) is optional and will be automatically removed
+
+2. **WhatsApp JID Format**:
+   `628123456789@s.whatsapp.net`
+   - This is the internal WhatsApp format
+   - The application automatically adds the "@s.whatsapp.net" suffix if not provided
+
+## Common Errors and Solutions
+
+### "Invalid recipient: not a user JID"
+
+This error occurs when the phone number is not properly formatted for WhatsApp. To fix:
+
+1. Ensure you're using the full international format including country code
+2. Remove spaces, dashes and special characters
+3. Try adding the "@s.whatsapp.net" suffix manually
+
+### "Not connected" or "Not logged in"
+
+This means the WhatsApp client isn't properly connected. To fix:
+
+1. Go to the client's page and check its status
+2. If disconnected, click on the QR Code button to authenticate
+3. Scan the QR code with your WhatsApp mobile app
+4. Try sending the message again after connecting
+
+### "Failed to send message"
+
+This generic error can occur for various reasons:
+
+1. Check if the recipient's phone number exists on WhatsApp
+2. Verify your internet connection
+3. Make sure your WhatsApp session is still valid
+4. Try reconnecting using the QR code
+
+## Testing Your Connection
+
+Before sending real messages, you can test your connection by:
+
+1. Sending a message to your own phone number
+2. Using the "Status" API to check if your client is properly connected
+3. Looking at the client's status on the dashboard or client details page
+
+## API Endpoints
+
+If you're using the API directly:
+
+```
+POST /api/clients/{client_id}/send
+{
+  "recipient": "628123456789",
+  "message": "Your message here"
+}
+```
+
+Include the API key in the `X-API-Key` header or as the `api_key` query parameter.
+
+
+
+================================================
+FILE: UPDATE_WHATSMEOW.md
+================================================
+# Updating the whatsmeow Library
+
+You're encountering the `Client outdated (405) connect failure` error because the WhatsApp Web protocol has been updated, but the current version of the whatsmeow library in your project is outdated.
+
+## Current Version
+
+Your project is using:
+```
+go.mau.fi/whatsmeow v0.0.0-20230427180258-7f679583b39b (April 2023)
+```
+
+## How to Update
+
+1. Go to your project directory:
+   ```
+   cd D:/Dev/go-simple-whatsapp-gateway2
+   ```
+
+2. Update the whatsmeow library:
+   ```
+   go get -u go.mau.fi/whatsmeow@latest
+   ```
+
+3. Update all dependencies:
+   ```
+   go mod tidy
+   ```
+
+4. Rebuild your application:
+   ```
+   go build
+   ```
+
+## Alternative Workaround
+
+If you can't update the library immediately, you can try the following workaround:
+
+1. Delete the whatsapp-data directory to remove any existing sessions:
+   ```
+   rm -rf ./whatsapp-data
+   ```
+
+2. Create your clients again and try to connect - sometimes this works with older library versions
+
+## Compatibility Issues to Watch For
+
+When updating the whatsmeow library, keep an eye out for:
+
+1. Changes to the QR code generation API
+2. Changes to the message sending API
+3. Changes to event handling
+
+You might need to make small adjustments to your code if the library's API has changed significantly.
+
+## Long-term Solution
+
+The best long-term solution is to:
+
+1. Update whatsmeow regularly
+2. Subscribe to notifications for the whatsmeow repository to stay informed about updates
+3. Implement a version check in your application to alert you when an update is needed
+
+The whatsmeow repository is at: https://github.com/tulir/whatsmeow
+
+
+
+================================================
+FILE: USAGE.md
+================================================
+# Go Simple WhatsApp Gateway - Usage Guide
+
+This guide explains how to run and use the Go Simple WhatsApp Gateway application.
+
+## Running the Application
+
+There are two ways to run the application:
+
+### 1. Standard Mode
+
+Run the application using the standard batch file:
+
+```
+D:\Dev\go-simple-whatsapp-gateway2\run.bat
+```
+
+### 2. Debug Mode
+
+Run the application with additional debug logging:
+
+```
+D:\Dev\go-simple-whatsapp-gateway2\run_debug.bat
+```
+
+The debug mode provides more detailed logs which can be helpful for troubleshooting.
+
+## Using the Application
+
+Once the application is running, you can access the web UI and API endpoints:
+
+### Web UI
+
+1. Open your browser and navigate to: `http://localhost:8080`
+2. You will be redirected to the dashboard
+
+### Main Pages
+
+- Dashboard: `http://localhost:8080/ui/dashboard`
+- Client Management: `http://localhost:8080/ui/clients`
+- QR Code Authentication: `http://localhost:8080/ui/qrcode/{client_id}`
+- Send Message: `http://localhost:8080/ui/sendmessage/{client_id}`
+
+### API Endpoints
+
+The API requires authentication using the API key specified in your .env file (default: `changeme`).
+You can pass the API key in one of two ways:
+
+1. Via the `X-API-Key` header
+2. Via the `api_key` query parameter
+
+#### Main API Endpoints:
+
+- List Clients: `GET /api/clients`
+- Create Client: `POST /api/clients`
+- Get Client Status: `GET /api/clients/{id}`
+- Delete Client: `DELETE /api/clients/{id}`
+- Generate QR Code: `GET /api/clients/{id}/qr`
+- Send Message: `POST /api/clients/{id}/send`
+- Logout Client: `POST /api/clients/{id}/logout`
+
+## Creating and Connecting a WhatsApp Client
+
+1. Go to the Clients page (`/ui/clients`)
+2. Enter a unique Client ID (e.g., "personal", "work", etc.) and click "Create Client"
+3. Once created, click on "QR Code" to generate a QR code for WhatsApp Web authentication
+4. Open WhatsApp on your phone:
+   - Go to Settings > Linked Devices
+   - Tap on "Link a Device"
+   - Scan the QR code displayed on your screen
+5. After successful scanning, you'll be connected to WhatsApp and can send messages
+
+## Troubleshooting
+
+### Blank White Page
+
+If you encounter a blank white page in the web UI, check:
+1. Browser console for JavaScript errors
+2. Application logs for any backend errors
+3. Ensure templates and static files are accessible
+
+### QR Code Generation Issues
+
+If you have issues generating QR codes:
+1. Check the application logs for specific errors
+2. Ensure the client is not already logged in (you may need to logout first)
+3. Try restarting the application
+4. Check your browser console for any frontend JavaScript errors
+
+### Connection Issues
+
+If you're having trouble connecting to WhatsApp:
+1. Make sure your phone has an active internet connection
+2. Verify that WhatsApp is up to date on your phone
+3. Try generating a new QR code
+4. Check that your computer's time and date are accurate
+
+## Additional Information
+
+- The default API key is `changeme` (defined in .env file)
+- WhatsApp client data is stored in the `whatsapp-data` directory
+- Each client has its own SQLite database for session storage
+
+
+
+================================================
+FILE: .dockerignore
+================================================
+.git
+.gitignore
+.env
+*.exe
+whatsapp-data/
+README.md
+USAGE.md
+SEND_WHATSAPP_MESSAGES.md
+UPDATE_WHATSMEOW.md
+run.bat
+run_debug.bat
+run_release.bat
+
+
+================================================
+FILE: config/config.go
+================================================
+package config
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+)
+
+// Config holds the application configuration
+type Config struct {
+	ListenAddr      string `json:"listen_addr"`
+	APIKey          string `json:"api_key"`
+	WhatsappDataDir string `json:"whatsapp_data_dir"`
+}
+
+// Load reads configuration from a file or environment variables
+func Load(configFile string) (*Config, error) {
+	// Default configuration
+	cfg := &Config{
+		ListenAddr:      ":8080",
+		APIKey:          "changeme",
+		WhatsappDataDir: "./whatsapp-data",
+	}
+
+	// Load from config file if provided
+	if configFile != "" {
+		if err := loadFromFile(configFile, cfg); err != nil {
+			return nil, err
+		}
+	}
+
+	// Override with environment variables if present
+	if addr := os.Getenv("LISTEN_ADDR"); addr != "" {
+		cfg.ListenAddr = addr
+	}
+	if key := os.Getenv("API_KEY"); key != "" {
+		cfg.APIKey = key
+	}
+	if dir := os.Getenv("WHATSAPP_DATA_DIR"); dir != "" {
+		cfg.WhatsappDataDir = dir
+	}
+
+	// Ensure the WhatsApp data directory exists
+	if err := os.MkdirAll(cfg.WhatsappDataDir, 0755); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+// loadFromFile loads configuration from a JSON file
+func loadFromFile(filename string, cfg *Config) error {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, cfg)
+}
+
+// SaveToFile saves the configuration to a JSON file
+func (cfg *Config) SaveToFile(filename string) error {
+	// Create directory if it doesn't exist
+	dir := filepath.Dir(filename)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	// Marshal to JSON with indentation
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	// Write to file
+	return os.WriteFile(filename, data, 0644)
+}
+
+
+
+================================================
+FILE: handlers/auth.go
+================================================
+package handlers
+
+import (
+	"net/http"
+	"os"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+)
+
+// APIKeyMiddleware creates a middleware for API key authentication
+func APIKeyMiddleware(apiKey string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Skip for UI pages
+		if strings.HasPrefix(c.Request.URL.Path, "/ui/") {
+			c.Next()
+			return
+		}
+
+		// Get API key from header
+		key := c.GetHeader("X-API-Key")
+		if key == "" {
+			// Also check query parameter for convenience
+			key = c.Query("api_key")
+		}
+
+		// Verify API key
+		if key != apiKey {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid API key",
+			})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// UIAuthMiddleware creates a middleware for UI authentication
+// In a real production system, you'd want a more robust auth system
+func UIAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Skip auth for login page
+		if c.Request.URL.Path == "/ui/login" {
+			c.Next()
+			return
+		}
+
+		// Check for API key in cookie
+		apiKey, err := c.Cookie("api_key")
+		if err != nil || apiKey == "" {
+			// Redirect to login page
+			c.Redirect(http.StatusFound, "/ui/login")
+			c.Abort()
+			return
+		}
+
+		// Get API key from config for comparison
+		expectedAPIKey := os.Getenv("API_KEY")
+		if expectedAPIKey == "" {
+			expectedAPIKey = "changeme" // Default from .env
+		}
+
+		// Verify API key
+		if apiKey != expectedAPIKey {
+			// Invalid API key, clear cookie and redirect to login
+			c.SetCookie("api_key", "", -1, "/", "", false, true)
+			c.Redirect(http.StatusFound, "/ui/login")
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+
+
+================================================
+FILE: handlers/clients.go
+================================================
+package handlers
+
+import (
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+
+	"go-simple-whatsapp-gateway2/whatsapp"
+)
+
+// ClientRequest represents a client creation/update request
+type ClientRequest struct {
+	ID string `json:"id" binding:"required"`
+}
+
+// DefaultClientRequest represents a request to set the default client
+type DefaultClientRequest struct {
+	ID string `json:"id" binding:"required"`
+}
+
+// PairingRequest represents a phone pairing request
+type PairingRequest struct {
+	PhoneNumber string `json:"phone_number" binding:"required"`
+}
+
+// MessageRequest represents a message sending request
+type MessageRequest struct {
+	Recipient string `json:"recipient" binding:"required"`
+	Message   string `json:"message" binding:"required"`
+}
+
+// ClientsHandler handles multi-client API endpoints
+type ClientsHandler struct {
+	clientManager *whatsapp.ClientManager
+}
+
+// NewClientsHandler creates a new clients handler
+func NewClientsHandler(clientManager *whatsapp.ClientManager) *ClientsHandler {
+	return &ClientsHandler{
+		clientManager: clientManager,
+	}
+}
+
+// RegisterRoutes registers the client API routes
+func (h *ClientsHandler) RegisterRoutes(router *gin.RouterGroup) {
+	router.GET("/clients", h.listClients)
+	router.POST("/clients", h.createClient)
+	router.POST("/clients/default", h.setDefaultClient)
+	router.GET("/clients/:id", h.getClient)
+	router.DELETE("/clients/:id", h.deleteClient)
+	router.GET("/clients/:id/qr", h.generateQR)
+	router.POST("/clients/:id/pair", h.pairPhone)
+	router.GET("/clients/:id/paircode", h.getPairingCode)
+	router.POST("/clients/:id/send", h.sendMessage)
+	router.POST("/clients/:id/connect", h.connectClient)
+	router.POST("/clients/:id/disconnect", h.disconnectClient)
+	router.POST("/clients/:id/logout", h.logoutClient)
+}
+
+// listClients lists all clients
+func (h *ClientsHandler) listClients(c *gin.Context) {
+	clients := h.clientManager.ListClients()
+	c.JSON(http.StatusOK, gin.H{
+		"clients":        clients,
+		"default_client": h.clientManager.GetDefaultClient(),
+	})
+}
+
+// createClient creates a new client
+func (h *ClientsHandler) createClient(c *gin.Context) {
+	var req ClientRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	client, err := h.clientManager.CreateClient(req.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, client.GetState())
+}
+
+// getClient gets a client by ID
+func (h *ClientsHandler) getClient(c *gin.Context) {
+	id := c.Param("id")
+	client, err := h.clientManager.GetClient(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, client.GetState())
+}
+
+// deleteClient deletes a client
+func (h *ClientsHandler) deleteClient(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.clientManager.DeleteClient(id); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// setDefaultClient sets the default client
+func (h *ClientsHandler) setDefaultClient(c *gin.Context) {
+	var req DefaultClientRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	if err := h.clientManager.SetDefaultClient(req.ID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// generateQR generates a QR code for a client
+func (h *ClientsHandler) generateQR(c *gin.Context) {
+	id := c.Param("id")
+	log.Printf("Generating QR code for client: %s", id) // Add logging
+	
+	client, err := h.clientManager.GetClient(id)
+	if err != nil {
+		log.Printf("Error getting client %s: %v", id, err) // Add logging
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// If the client is already logged in, return an appropriate error
+	state := client.GetState()
+	if state.LoggedIn {
+		log.Printf("Client %s is already logged in, no need for QR code", id)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Client is already logged in. Logout first if you want to reconnect.",
+			"logged_in": true,
+		})
+		return
+	}
+
+	// Try to generate the QR code
+	qrCode, err := client.GenerateQR()
+	if err != nil {
+		log.Printf("Error generating QR code for client %s: %v", id, err) // Add logging
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Printf("QR code generated successfully for client %s", id) // Add logging
+	c.JSON(http.StatusOK, gin.H{"qr_code": qrCode})
+}
+
+// pairPhone pairs a client with a phone number (currently not supported)
+func (h *ClientsHandler) pairPhone(c *gin.Context) {
+	id := c.Param("id")
+	client, err := h.clientManager.GetClient(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	var req PairingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	if err := client.PairPhone(req.PhoneNumber); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// getPairingCode gets the pairing code after a PairPhone request (currently not supported)
+func (h *ClientsHandler) getPairingCode(c *gin.Context) {
+	id := c.Param("id")
+	client, err := h.clientManager.GetClient(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	code, err := client.GetPairingCode()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": code})
+}
+
+// sendMessage sends a message from a client
+func (h *ClientsHandler) sendMessage(c *gin.Context) {
+	id := c.Param("id")
+	client, err := h.clientManager.GetClient(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	var req MessageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	if err := client.SendMessage(req.Recipient, req.Message); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"sent_at": time.Now(),
+	})
+}
+
+// connectClient connects a client
+func (h *ClientsHandler) connectClient(c *gin.Context) {
+	id := c.Param("id")
+	client, err := h.clientManager.GetClient(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := client.Connect(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, client.GetState())
+}
+
+// disconnectClient disconnects a client
+func (h *ClientsHandler) disconnectClient(c *gin.Context) {
+	id := c.Param("id")
+	client, err := h.clientManager.GetClient(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := client.Disconnect(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, client.GetState())
+}
+
+// logoutClient logs out a client
+func (h *ClientsHandler) logoutClient(c *gin.Context) {
+	id := c.Param("id")
+	log.Printf("Logging out client: %s", id)
+	
+	client, err := h.clientManager.GetClient(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// First disconnect, then logout
+	// Disconnect silently - don't throw error if already disconnected
+	client.Disconnect()
+
+	// Now attempt formal logout
+	err = client.Logout()
+	if err != nil {
+		log.Printf("Error logging out client %s: %v", id, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Printf("Client %s logged out successfully", id)
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+
+
+================================================
+FILE: handlers/handlers.go
+================================================
+package handlers
+
+import (
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+
+	"go-simple-whatsapp-gateway2/whatsapp"
+)
+
+// RegisterHandlers registers all the handlers
+func RegisterHandlers(router *gin.Engine, clientManager *whatsapp.ClientManager, apiKey string) {
+	// Middleware for API authentication
+	apiAuthMiddleware := APIKeyMiddleware(apiKey)
+	uiAuthMiddleware := UIAuthMiddleware()
+
+	// API routes
+	apiGroup := router.Group("/api")
+	apiGroup.Use(apiAuthMiddleware)
+
+	// Legacy single-client API
+	whatsAppHandler := NewWhatsAppHandler(clientManager)
+	whatsAppHandler.RegisterRoutes(apiGroup)
+
+	// Multi-client API
+	clientsHandler := NewClientsHandler(clientManager)
+	clientsHandler.RegisterRoutes(apiGroup)
+
+	// UI routes
+	uiGroup := router.Group("/ui")
+	uiGroup.Use(uiAuthMiddleware)
+
+	uiHandler := NewUIHandler(clientManager)
+	uiHandler.RegisterRoutes(uiGroup)
+
+	// Redirect root to UI
+	router.GET("/", func(c *gin.Context) {
+		// Check if user is authenticated
+		_, err := c.Cookie("api_key")
+		if err != nil {
+			// Not authenticated, redirect to login
+			c.Redirect(http.StatusFound, "/ui/login")
+			return
+		}
+		// Authenticated, redirect to dashboard
+		c.Redirect(http.StatusFound, "/ui/dashboard")
+	})
+	
+	// Add a test route at root level for troubleshooting
+	router.GET("/test", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "test_alt.html", gin.H{
+			"Title":     "System Test",
+			"GoVersion": "Go 1.21",
+			"Timestamp": time.Now().Format("2006-01-02 15:04:05"),
+		})
+	})
+}
+
+
+
+================================================
+FILE: handlers/ui.go
+================================================
+package handlers
+
+import (
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/gin-gonic/gin"
+
+	"go-simple-whatsapp-gateway2/whatsapp"
+)
+
+// UIHandler handles UI endpoints
+type UIHandler struct {
+	clientManager *whatsapp.ClientManager
+}
+
+// NewUIHandler creates a new UI handler
+func NewUIHandler(clientManager *whatsapp.ClientManager) *UIHandler {
+	return &UIHandler{
+		clientManager: clientManager,
+	}
+}
+
+// RegisterRoutes registers the UI routes
+func (h *UIHandler) RegisterRoutes(router *gin.RouterGroup) {
+	router.GET("/", h.redirectToDashboard)
+	router.GET("/dashboard", h.dashboard)
+	router.GET("/clients", h.clients)
+	router.GET("/clients/:id", h.clientDetail)
+	router.GET("/qrcode/:id", h.qrCode)
+	router.GET("/phonepairing/:id", h.phonePairing)
+	router.GET("/sendmessage/:id", h.sendMessage)
+	router.GET("/test", h.testPage) // Added test route
+	router.GET("/login", h.loginPage)
+	router.POST("/login", h.login)
+	router.GET("/logout", h.logout)
+}
+
+// redirectToDashboard redirects to the dashboard
+func (h *UIHandler) redirectToDashboard(c *gin.Context) {
+	c.Redirect(http.StatusFound, "/ui/dashboard")
+}
+
+// dashboard renders the dashboard page
+func (h *UIHandler) dashboard(c *gin.Context) {
+	clients := h.clientManager.ListClients()
+	defaultClient := h.clientManager.GetDefaultClient()
+
+	c.HTML(http.StatusOK, "dashboard_alt.html", gin.H{
+		"Title":         "Dashboard",
+		"Clients":       clients,
+		"DefaultClient": defaultClient,
+	})
+}
+
+// clients renders the clients management page
+func (h *UIHandler) clients(c *gin.Context) {
+	clients := h.clientManager.ListClients()
+	defaultClient := h.clientManager.GetDefaultClient()
+
+	c.HTML(http.StatusOK, "clients_alt.html", gin.H{
+		"Title":         "Client Management",
+		"Clients":       clients,
+		"DefaultClient": defaultClient,
+	})
+}
+
+// clientDetail renders the client detail page
+func (h *UIHandler) clientDetail(c *gin.Context) {
+	id := c.Param("id")
+	client, err := h.clientManager.GetClient(id)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/ui/clients")
+		return
+	}
+
+	c.HTML(http.StatusOK, "client_detail_alt.html", gin.H{
+		"Title":         "Client Details",
+		"Client":        client.GetState(),
+		"DefaultClient": h.clientManager.GetDefaultClient(),
+	})
+}
+
+// qrCode renders the QR code page
+func (h *UIHandler) qrCode(c *gin.Context) {
+	id := c.Param("id")
+	client, err := h.clientManager.GetClient(id)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/ui/clients")
+		return
+	}
+
+	c.HTML(http.StatusOK, "qrcode_alt2.html", gin.H{
+		"Title":  "QR Code Authentication",
+		"Client": client.GetState(),
+	})
+}
+
+// phonePairing renders the phone pairing page
+func (h *UIHandler) phonePairing(c *gin.Context) {
+	id := c.Param("id")
+	client, err := h.clientManager.GetClient(id)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/ui/clients")
+		return
+	}
+
+	c.HTML(http.StatusOK, "phonepairing.html", gin.H{
+		"Title":  "Phone Pairing",
+		"Client": client.GetState(),
+	})
+}
+
+// sendMessage renders the send message page
+func (h *UIHandler) sendMessage(c *gin.Context) {
+	id := c.Param("id")
+	client, err := h.clientManager.GetClient(id)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/ui/clients")
+		return
+	}
+
+	c.HTML(http.StatusOK, "sendmessage_alt.html", gin.H{
+		"Title":  "Send Message",
+		"Client": client.GetState(),
+	})
+}
+
+// testPage renders a test page to verify templates and assets are loading
+func (h *UIHandler) testPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "test_alt.html", gin.H{
+		"Title":     "System Test",
+		"GoVersion": "Go 1.21", // You could get the actual Go version if needed
+		"Timestamp": time.Now().Format("2006-01-02 15:04:05"),
+	})
+}
+
+// loginPage renders the login page
+func (h *UIHandler) loginPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "login_alt.html", gin.H{
+		"Title": "Login",
+	})
+}
+
+// login processes login requests
+func (h *UIHandler) login(c *gin.Context) {
+	// Get API key from form
+	apiKey := c.PostForm("api_key")
+	
+	// Get remember me
+	remember := c.PostForm("remember") == "1"
+	
+	// Get API key from config for comparison
+	expectedAPIKey := os.Getenv("API_KEY")
+	if expectedAPIKey == "" {
+		expectedAPIKey = "changeme" // Default from .env
+	}
+	
+	// Verify API key
+	if apiKey != expectedAPIKey {
+		c.HTML(http.StatusOK, "login_alt.html", gin.H{
+			"Title": "Login",
+			"Error": "Invalid API Key",
+		})
+		return
+	}
+	
+	// Set cookie
+	expiration := 3600 // 1 hour by default
+	if remember {
+		expiration = 3600 * 24 // 24 hours if remember me is checked
+	}
+	
+	c.SetCookie("api_key", apiKey, expiration, "/", "", false, true)
+	
+	// Redirect to dashboard
+	c.Redirect(http.StatusFound, "/ui/dashboard")
+}
+
+// logout handles logout by clearing cookies
+func (h *UIHandler) logout(c *gin.Context) {
+	// Clear cookie
+	c.SetCookie("api_key", "", -1, "/", "", false, true)
+	
+	// Redirect to login page
+	c.Redirect(http.StatusFound, "/ui/login")
+}
+
+
+================================================
+FILE: handlers/whatsapp.go
+================================================
+package handlers
+
+import (
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+
+	"go-simple-whatsapp-gateway2/whatsapp"
+)
+
+// WhatsAppHandler handles legacy single-client API endpoints
+type WhatsAppHandler struct {
+	clientManager *whatsapp.ClientManager
+}
+
+// NewWhatsAppHandler creates a new WhatsApp handler
+func NewWhatsAppHandler(clientManager *whatsapp.ClientManager) *WhatsAppHandler {
+	return &WhatsAppHandler{
+		clientManager: clientManager,
+	}
+}
+
+// RegisterRoutes registers the legacy API routes
+func (h *WhatsAppHandler) RegisterRoutes(router *gin.RouterGroup) {
+	router.GET("/status", h.getStatus)
+	router.GET("/qr", h.generateQR)
+	router.POST("/pair", h.pairPhone)
+	router.GET("/paircode", h.getPairingCode)
+	router.POST("/send", h.sendMessage)
+	router.POST("/connect", h.connect)
+	router.POST("/disconnect", h.disconnect)
+	router.POST("/logout", h.logout)
+}
+
+// getStatus gets the status of the default client
+func (h *WhatsAppHandler) getStatus(c *gin.Context) {
+	client, err := h.clientManager.GetClient("")
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, client.GetState())
+}
+
+// generateQR generates a QR code for the default client
+func (h *WhatsAppHandler) generateQR(c *gin.Context) {
+	client, err := h.clientManager.GetClient("")
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	qrCode, err := client.GenerateQR()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"qr_code": qrCode})
+}
+
+// pairPhone pairs the default client with a phone number (currently not supported)
+func (h *WhatsAppHandler) pairPhone(c *gin.Context) {
+	client, err := h.clientManager.GetClient("")
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	var req PairingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	if err := client.PairPhone(req.PhoneNumber); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// getPairingCode gets the pairing code for the default client (currently not supported)
+func (h *WhatsAppHandler) getPairingCode(c *gin.Context) {
+	client, err := h.clientManager.GetClient("")
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	code, err := client.GetPairingCode()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": code})
+}
+
+// sendMessage sends a message from the default client
+func (h *WhatsAppHandler) sendMessage(c *gin.Context) {
+	client, err := h.clientManager.GetClient("")
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	var req MessageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	if err := client.SendMessage(req.Recipient, req.Message); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"sent_at": time.Now(),
+	})
+}
+
+// connect connects the default client
+func (h *WhatsAppHandler) connect(c *gin.Context) {
+	client, err := h.clientManager.GetClient("")
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := client.Connect(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, client.GetState())
+}
+
+// disconnect disconnects the default client
+func (h *WhatsAppHandler) disconnect(c *gin.Context) {
+	client, err := h.clientManager.GetClient("")
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := client.Disconnect(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, client.GetState())
+}
+
+// logout logs out the default client
+func (h *WhatsAppHandler) logout(c *gin.Context) {
+	client, err := h.clientManager.GetClient("")
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := client.Logout(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, client.GetState())
+}
+
+
+
+================================================
+FILE: static/css/styles.css
+================================================
+/* Custom styles for WhatsApp Gateway */
+
+body {
+    background-color: #f5f5f5;
+    padding-bottom: 60px;
+}
+
+.navbar {
+    margin-bottom: 20px;
+}
+
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 60px;
+    line-height: 60px;
+    background-color: #f5f5f5;
+    border-top: 1px solid #ddd;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    font-weight: 500;
+}
+
+.table th {
+    background-color: #f8f9fa;
+}
+
+/* Styles for QR code display */
+#qr-code-container {
+    padding: 20px;
+    background-color: white;
+    display: inline-block;
+    margin: 0 auto;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+#qr-code-container img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Styles for pairing code display */
+.code-display {
+    background-color: white;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    font-family: monospace;
+    letter-spacing: 3px;
+}
+
+/* Status badges */
+.badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+.badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.badge.bg-secondary {
+    background-color: #6c757d !important;
+}
+
+/* Button spacing in action groups */
+.btn-group .btn {
+    margin-right: 2px;
+}
+
+/* Responsive tables */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Alerts with icons */
+.alert i {
+    margin-right: 8px;
+}
+
+
+
+================================================
+FILE: static/js/main.js
+================================================
+// Main JavaScript file for the WhatsApp Gateway UI
+
+// Store API key in localStorage after the user enters it once
+function storeApiKey(apiKey) {
+    if (apiKey) {
+        localStorage.setItem('api_key', apiKey);
+    }
+}
+
+// Get API key from localStorage or prompt the user
+function getApiKey() {
+    let apiKey = localStorage.getItem('api_key');
+    
+    if (!apiKey) {
+        // Use default API key from .env file first
+        apiKey = 'changeme'; // default from .env
+        storeApiKey(apiKey);
+        console.log('Using default API key: changeme');
+    }
+    
+    return apiKey;
+}
+
+// Function to reset the API key (for troubleshooting)
+function resetApiKey() {
+    localStorage.removeItem('api_key');
+    const newKey = prompt('Please enter your API key:', 'changeme');
+    storeApiKey(newKey);
+    return newKey;
+}
+
+// Helper function to format date/time
+function formatDateTime(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+}
+
+// Function to handle common AJAX errors
+function handleAjaxError(xhr, element) {
+    let errorMessage = 'An error occurred';
+    
+    if (xhr.responseJSON && xhr.responseJSON.error) {
+        errorMessage = xhr.responseJSON.error;
+    } else if (xhr.status === 401) {
+        errorMessage = 'Unauthorized: Invalid API key';
+        // Clear stored API key if it's invalid
+        localStorage.removeItem('api_key');
+    } else if (xhr.status === 404) {
+        errorMessage = 'Resource not found';
+    } else if (xhr.status === 500) {
+        errorMessage = 'Server error';
+    }
+    
+    if (element) {
+        $(element).html(`<div class="alert alert-danger">${errorMessage}</div>`);
+    } else {
+        alert(errorMessage);
+    }
+}
+
+// Initialize tooltips and popovers on document ready
+$(document).ready(function() {
+    console.log('WhatsApp Gateway UI initialized');
+    
+    // Add visual indicator that JavaScript is working
+    $('body').append('<div id="js-debug" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 5px; z-index: 9999;">JS Running</div>');
+    
+    // Check if CSS is loaded
+    if ($('.navbar').css('margin-bottom') === '20px') {
+        $('#js-debug').append(' | CSS OK');
+    } else {
+        $('#js-debug').append(' | CSS Missing').css('background-color', 'rgba(255,0,0,0.7)');
+        console.error('CSS styles not applied correctly');
+    }
+    
+    // Initialize Bootstrap tooltips
+    try {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Initialize Bootstrap popovers
+        const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+        popoverTriggerList.map(function(popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl);
+        });
+    } catch (error) {
+        console.error('Error initializing Bootstrap components:', error);
+        $('#js-debug').append(' | Bootstrap Error').css('background-color', 'rgba(255,0,0,0.7)');
+    }
+
+    // Add test API request to verify API connectivity
+    $.ajax({
+        url: '/api/clients',
+        method: 'GET',
+        headers: {
+            'X-API-Key': getApiKey()
+        },
+        success: function(response) {
+            $('#js-debug').append(' | API OK');
+            console.log('API test successful:', response);
+        },
+        error: function(xhr) {
+            $('#js-debug').append(' | API Error').css('background-color', 'rgba(255,0,0,0.7)');
+            console.error('API test failed:', xhr.status, xhr.responseText);
+        }
+    });
+});
+
+
+
+================================================
+FILE: templates/client_detail.html
+================================================
+{{ define "content" }}
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Client Information
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ .Client.ID }}</h5>
+                <div class="mb-3">
+                    <strong>Status:</strong> 
+                    {{ if eq .Client.Status "connected" }}
+                        <span class="text-success">Connected</span>
+                    {{ else if eq .Client.Status "disconnected" }}
+                        <span class="text-warning">Disconnected</span>
+                    {{ else if eq .Client.Status "logged_out" }}
+                        <span class="text-danger">Logged Out</span>
+                    {{ else if eq .Client.Status "error" }}
+                        <span class="text-danger">Error</span>
+                        {{ if .Client.ConnectionError }}
+                            <br><small class="text-danger">{{ .Client.ConnectionError }}</small>
+                        {{ end }}
+                    {{ else }}
+                        <span class="text-secondary">{{ .Client.Status }}</span>
+                    {{ end }}
+                </div>
+                <div class="mb-3">
+                    <strong>Name:</strong> {{ if .Client.PushName }}{{ .Client.PushName }}{{ else }}-{{ end }}
+                </div>
+                <div class="mb-3">
+                    <strong>Phone Number:</strong> {{ if .Client.PhoneNumber }}{{ .Client.PhoneNumber }}{{ else }}-{{ end }}
+                </div>
+                <div class="mb-3">
+                    <strong>Last Activity:</strong> {{ .Client.LastActivity.Format "2006-01-02 15:04:05" }}
+                </div>
+                <div class="mb-3">
+                    <strong>Connection:</strong> {{ if .Client.Connected }}Connected{{ else }}Disconnected{{ end }}
+                </div>
+                <div class="mb-3">
+                    <strong>Login:</strong> {{ if .Client.LoggedIn }}Logged In{{ else }}Logged Out{{ end }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Actions
+            </div>
+            <div class="card-body">
+                {{ if .Client.LoggedIn }}
+                    <div class="mb-3">
+                        <a href="/ui/sendmessage/{{ .Client.ID }}" class="btn btn-success">Send Message</a>
+                    </div>
+                    <div class="mb-3">
+                        <button id="disconnect-btn" class="btn btn-warning">Disconnect</button>
+                    </div>
+                    <div class="mb-3">
+                        <button id="logout-btn" class="btn btn-danger">Logout</button>
+                    </div>
+                {{ else }}
+                    {{ if .Client.Connected }}
+                        <div class="mb-3">
+                            <button id="disconnect-btn" class="btn btn-warning">Disconnect</button>
+                        </div>
+                    {{ else }}
+                        <div class="mb-3">
+                            <button id="connect-btn" class="btn btn-primary">Connect</button>
+                        </div>
+                    {{ end }}
+                    <div class="mb-3">
+                        <a href="/ui/qrcode/{{ .Client.ID }}" class="btn btn-success">QR Code Authentication</a>
+                    </div>
+                {{ end }}
+                <div class="mb-3">
+                    <button id="refresh-btn" class="btn btn-info">Refresh Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+    $(document).ready(function() {
+        const clientId = "{{ .Client.ID }}";
+
+        $('#connect-btn').on('click', function() {
+            $.ajax({
+                url: '/api/clients/' + clientId + '/connect',
+                method: 'POST',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                success: function() {
+                    window.location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error connecting client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        });
+
+        $('#disconnect-btn').on('click', function() {
+            $.ajax({
+                url: '/api/clients/' + clientId + '/disconnect',
+                method: 'POST',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                success: function() {
+                    window.location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error disconnecting client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        });
+
+        $('#logout-btn').on('click', function() {
+            if (!confirm('Are you sure you want to logout? You will need to scan the QR code again.')) {
+                return;
+            }
+            
+            $.ajax({
+                url: '/api/clients/' + clientId + '/logout',
+                method: 'POST',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                success: function() {
+                    window.location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error logging out client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        });
+
+        $('#refresh-btn').on('click', function() {
+            window.location.reload();
+        });
+
+        // Helper function to get API key
+        function getApiKey() {
+            return localStorage.getItem('api_key') || prompt('Please enter your API key:');
+        }
+    });
+</script>
+{{ end }}
+
+
+
+================================================
+FILE: templates/client_detail_alt.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Details - WhatsApp Gateway</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="/static/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/ui/dashboard">WhatsApp Gateway</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/clients">Clients</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Client Details: {{ .Client.ID }}</h1>
+            <a href="/ui/clients" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Clients
+            </a>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        Client Information
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h5>Status</h5>
+                            {{ if eq .Client.Status "connected" }}
+                                <span class="badge bg-success">Connected</span>
+                            {{ else if eq .Client.Status "disconnected" }}
+                                <span class="badge bg-warning text-dark">Disconnected</span>
+                            {{ else if eq .Client.Status "logged_out" }}
+                                <span class="badge bg-danger">Logged Out</span>
+                            {{ else if eq .Client.Status "error" }}
+                                <span class="badge bg-danger">Error</span>
+                            {{ else }}
+                                <span class="badge bg-secondary">{{ .Client.Status }}</span>
+                            {{ end }}
+                            
+                            {{ if .Client.LoggedIn }}
+                                <span class="badge bg-success">Authenticated</span>
+                            {{ else }}
+                                <span class="badge bg-danger">Not Authenticated</span>
+                            {{ end }}
+                            
+                            {{ if eq $.DefaultClient .Client.ID }}
+                                <span class="badge bg-primary">Default Client</span>
+                            {{ end }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h5>Details</h5>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th>Client ID</th>
+                                    <td>{{ .Client.ID }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Name</th>
+                                    <td>{{ if .Client.PushName }}{{ .Client.PushName }}{{ else }}-{{ end }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Phone Number</th>
+                                    <td>{{ if .Client.PhoneNumber }}{{ .Client.PhoneNumber }}{{ else }}-{{ end }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Last Activity</th>
+                                    <td>{{ .Client.LastActivity.Format "2006-01-02 15:04:05" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        Actions
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            {{ if not .Client.LoggedIn }}
+                                <a href="/ui/qrcode/{{ .Client.ID }}" class="btn btn-success">
+                                    <i class="bi bi-qr-code"></i> QR Code Authentication
+                                </a>
+                            {{ else }}
+                                <a href="/ui/sendmessage/{{ .Client.ID }}" class="btn btn-primary">
+                                    <i class="bi bi-chat-dots"></i> Send Message
+                                </a>
+                                <button id="logout-btn" class="btn btn-danger">
+                                    <i class="bi bi-box-arrow-right"></i> Logout from WhatsApp
+                                </button>
+                            {{ end }}
+                            
+                            {{ if not .Client.IsDefault }}
+                                <button id="set-default-btn" class="btn btn-warning">
+                                    <i class="bi bi-star"></i> Set as Default Client
+                                </button>
+                            {{ end }}
+                            
+                            <button id="delete-btn" class="btn btn-outline-danger">
+                                <i class="bi bi-trash"></i> Delete Client
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        Connection Status
+                    </div>
+                    <div class="card-body">
+                        <div id="status-container">
+                            <p>
+                                <strong>Connection:</strong>
+                                {{ if eq .Client.Status "connected" }}
+                                    <span class="text-success">Connected</span>
+                                {{ else }}
+                                    <span class="text-danger">Disconnected</span>
+                                {{ end }}
+                            </p>
+                            
+                            <p>
+                                <strong>Authentication:</strong>
+                                {{ if .Client.LoggedIn }}
+                                    <span class="text-success">Authenticated</span>
+                                {{ else }}
+                                    <span class="text-danger">Not Authenticated</span>
+                                {{ end }}
+                            </p>
+                            
+                            <div class="d-grid mt-3">
+                                <button id="refresh-status-btn" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh Status
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmation-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modal-title">Confirm Action</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modal-body">
+                    Are you sure you want to proceed with this action?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-btn">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Go Simple WhatsApp Gateway</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    
+    <!-- Debug indicator for troubleshooting -->
+    <div id="js-debug" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 5px; z-index: 9999;">
+        JS Running | Template: client_detail_alt.html
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            const clientId = "{{ .Client.ID }}";
+            let confirmAction = null;
+            
+            // Refresh status button
+            $('#refresh-status-btn').on('click', function() {
+                refreshStatus();
+            });
+            
+            // Set as default client
+            $('#set-default-btn').on('click', function() {
+                showConfirmation(
+                    'Set Default Client',
+                    `Are you sure you want to set "${clientId}" as the default client?`,
+                    'btn-warning',
+                    setDefaultClient
+                );
+            });
+            
+            // Logout button
+            $('#logout-btn').on('click', function() {
+                showConfirmation(
+                    'Logout Confirmation',
+                    `Are you sure you want to log out of WhatsApp on client "${clientId}"?`,
+                    'btn-danger',
+                    logoutClient
+                );
+            });
+            
+            // Delete client button
+            $('#delete-btn').on('click', function() {
+                showConfirmation(
+                    'Delete Client',
+                    `Are you sure you want to delete client "${clientId}"? This action cannot be undone.`,
+                    'btn-danger',
+                    deleteClient
+                );
+            });
+            
+            // Confirm button click
+            $('#confirm-btn').on('click', function() {
+                if (typeof confirmAction === 'function') {
+                    confirmAction();
+                }
+                $('#confirmation-modal').modal('hide');
+            });
+            
+            // Show confirmation modal
+            function showConfirmation(title, message, btnClass, callback) {
+                $('#modal-title').text(title);
+                $('#modal-body').text(message);
+                $('#confirm-btn').removeClass('btn-primary btn-danger btn-warning').addClass(btnClass);
+                confirmAction = callback;
+                $('#confirmation-modal').modal('show');
+            }
+            
+            // Refresh client status
+            function refreshStatus() {
+                $.ajax({
+                    url: '/api/clients/' + clientId,
+                    method: 'GET',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    success: function(response) {
+                        // Reload the page to show updated status
+                        window.location.reload();
+                    },
+                    error: function(xhr) {
+                        alert('Error refreshing status: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                    }
+                });
+            }
+            
+            // Set as default client
+            function setDefaultClient() {
+                $.ajax({
+                    url: '/api/clients/default',
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    contentType: 'application/json',
+                    data: JSON.stringify({ id: clientId }),
+                    success: function() {
+                        window.location.reload();
+                    },
+                    error: function(xhr) {
+                        alert('Error setting default client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                    }
+                });
+            }
+            
+            // Logout client
+            function logoutClient() {
+                $.ajax({
+                    url: '/api/clients/' + clientId + '/logout',
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    success: function() {
+                        window.location.reload();
+                    },
+                    error: function(xhr) {
+                        alert('Error logging out: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                    }
+                });
+            }
+            
+            // Delete client
+            function deleteClient() {
+                $.ajax({
+                    url: '/api/clients/' + clientId,
+                    method: 'DELETE',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    success: function() {
+                        window.location.href = '/ui/clients';
+                    },
+                    error: function(xhr) {
+                        alert('Error deleting client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+================================================
+FILE: templates/clients.html
+================================================
+{{ define "content" }}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                Add New Client
+            </div>
+            <div class="card-body">
+                <form id="add-client-form">
+                    <div class="mb-3">
+                        <label for="client-id" class="form-label">Client ID</label>
+                        <input type="text" class="form-control" id="client-id" placeholder="Enter a unique client ID" required>
+                        <div class="form-text">Choose a unique identifier for this WhatsApp client.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Client</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                Manage Clients
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Client ID</th>
+                                <th>Status</th>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Last Activity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clients-table-body">
+                            {{ if .Clients }}
+                                {{ range .Clients }}
+                                <tr data-id="{{ .ID }}">
+                                    <td>
+                                        {{ .ID }}
+                                        {{ if eq $.DefaultClient .ID }}
+                                            <span class="badge bg-success">Default</span>
+                                        {{ end }}
+                                    </td>
+                                    <td>
+                                        {{ if eq .Status "connected" }}
+                                            <span class="badge bg-success">Connected</span>
+                                        {{ else if eq .Status "disconnected" }}
+                                            <span class="badge bg-warning text-dark">Disconnected</span>
+                                        {{ else if eq .Status "logged_out" }}
+                                            <span class="badge bg-danger">Logged Out</span>
+                                        {{ else if eq .Status "error" }}
+                                            <span class="badge bg-danger">Error</span>
+                                        {{ else }}
+                                            <span class="badge bg-secondary">{{ .Status }}</span>
+                                        {{ end }}
+                                    </td>
+                                    <td>{{ if .PushName }}{{ .PushName }}{{ else }}-{{ end }}</td>
+                                    <td>{{ if .PhoneNumber }}{{ .PhoneNumber }}{{ else }}-{{ end }}</td>
+                                    <td>{{ .LastActivity.Format "2006-01-02 15:04:05" }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="/ui/clients/{{ .ID }}" class="btn btn-sm btn-info">Details</a>
+                                            {{ if not (eq $.DefaultClient .ID) }}
+                                                <button type="button" class="btn btn-sm btn-success set-default-btn" data-id="{{ .ID }}">Set Default</button>
+                                            {{ end }}
+                                            <button type="button" class="btn btn-sm btn-danger delete-client-btn" data-id="{{ .ID }}">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {{ end }}
+                            {{ else }}
+                                <tr>
+                                    <td colspan="6" class="text-center">No clients configured</td>
+                                </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="delete-confirm-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this client? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+    $(document).ready(function() {
+        // Add client form submission
+        $('#add-client-form').on('submit', function(e) {
+            e.preventDefault();
+            const clientId = $('#client-id').val();
+            
+            if (!clientId) {
+                alert('Please enter a client ID');
+                return;
+            }
+
+            $.ajax({
+                url: '/api/clients',
+                method: 'POST',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                contentType: 'application/json',
+                data: JSON.stringify({ id: clientId }),
+                success: function(response) {
+                    window.location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error creating client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        });
+
+        // Set default client
+        $('.set-default-btn').on('click', function() {
+            const clientId = $(this).data('id');
+            
+            $.ajax({
+                url: '/api/clients/default',
+                method: 'POST',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                contentType: 'application/json',
+                data: JSON.stringify({ id: clientId }),
+                success: function() {
+                    window.location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error setting default client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        });
+
+        // Delete client button
+        let clientToDelete = null;
+        $('.delete-client-btn').on('click', function() {
+            clientToDelete = $(this).data('id');
+            $('#delete-confirm-modal').modal('show');
+        });
+
+        // Confirm delete button
+        $('#confirm-delete-btn').on('click', function() {
+            if (!clientToDelete) return;
+            
+            $.ajax({
+                url: '/api/clients/' + clientToDelete,
+                method: 'DELETE',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                success: function() {
+                    $('#delete-confirm-modal').modal('hide');
+                    window.location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error deleting client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                }
+            });
+        });
+
+        // Helper function to get API key
+        function getApiKey() {
+            // In a real app, you might store this securely or prompt the user
+            return localStorage.getItem('api_key') || prompt('Please enter your API key:');
+        }
+    });
+</script>
+{{ end }}
+
+
+
+================================================
+FILE: templates/clients_alt.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Management - WhatsApp Gateway</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="/static/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/ui/dashboard">WhatsApp Gateway</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/ui/clients">Clients</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1 class="mb-4">Client Management</h1>
+        
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        Add New Client
+                    </div>
+                    <div class="card-body">
+                        <form id="add-client-form">
+                            <div class="mb-3">
+                                <label for="client-id" class="form-label">Client ID</label>
+                                <input type="text" class="form-control" id="client-id" placeholder="Enter a unique client ID" required>
+                                <div class="form-text">Choose a unique identifier for this WhatsApp client.</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Create Client</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        Manage Clients
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Client ID</th>
+                                        <th>Status</th>
+                                        <th>Name</th>
+                                        <th>Phone</th>
+                                        <th>Last Activity</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clients-table-body">
+                                    {{ if .Clients }}
+                                        {{ range .Clients }}
+                                        <tr data-id="{{ .ID }}">
+                                            <td>
+                                                {{ .ID }}
+                                                {{ if eq $.DefaultClient .ID }}
+                                                    <span class="badge bg-success">Default</span>
+                                                {{ end }}
+                                            </td>
+                                            <td>
+                                                {{ if eq .Status "connected" }}
+                                                    <span class="badge bg-success">Connected</span>
+                                                {{ else if eq .Status "disconnected" }}
+                                                    <span class="badge bg-warning text-dark">Disconnected</span>
+                                                {{ else if eq .Status "logged_out" }}
+                                                    <span class="badge bg-danger">Logged Out</span>
+                                                {{ else if eq .Status "error" }}
+                                                    <span class="badge bg-danger">Error</span>
+                                                {{ else }}
+                                                    <span class="badge bg-secondary">{{ .Status }}</span>
+                                                {{ end }}
+                                            </td>
+                                            <td>{{ if .PushName }}{{ .PushName }}{{ else }}-{{ end }}</td>
+                                            <td>{{ if .PhoneNumber }}{{ .PhoneNumber }}{{ else }}-{{ end }}</td>
+                                            <td>{{ .LastActivity.Format "2006-01-02 15:04:05" }}</td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a href="/ui/clients/{{ .ID }}" class="btn btn-sm btn-info">Details</a>
+                                                    {{ if not (eq $.DefaultClient .ID) }}
+                                                        <button type="button" class="btn btn-sm btn-success set-default-btn" data-id="{{ .ID }}">Set Default</button>
+                                                    {{ end }}
+                                                    <button type="button" class="btn btn-sm btn-danger delete-client-btn" data-id="{{ .ID }}">Delete</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {{ end }}
+                                    {{ else }}
+                                        <tr>
+                                            <td colspan="6" class="text-center">No clients configured</td>
+                                        </tr>
+                                    {{ end }}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="delete-confirm-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this client? This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Go Simple WhatsApp Gateway</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    
+    <!-- Debug indicator for troubleshooting -->
+    <div id="js-debug" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 5px; z-index: 9999;">
+        JS Running | Template: clients_alt.html
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            // Add client form submission
+            $('#add-client-form').on('submit', function(e) {
+                e.preventDefault();
+                const clientId = $('#client-id').val();
+                
+                if (!clientId) {
+                    alert('Please enter a client ID');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/api/clients',
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    contentType: 'application/json',
+                    data: JSON.stringify({ id: clientId }),
+                    success: function(response) {
+                        window.location.reload();
+                    },
+                    error: function(xhr) {
+                        alert('Error creating client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                    }
+                });
+            });
+
+            // Set default client
+            $('.set-default-btn').on('click', function() {
+                const clientId = $(this).data('id');
+                
+                $.ajax({
+                    url: '/api/clients/default',
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    contentType: 'application/json',
+                    data: JSON.stringify({ id: clientId }),
+                    success: function() {
+                        window.location.reload();
+                    },
+                    error: function(xhr) {
+                        alert('Error setting default client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                    }
+                });
+            });
+
+            // Delete client button
+            let clientToDelete = null;
+            $('.delete-client-btn').on('click', function() {
+                clientToDelete = $(this).data('id');
+                $('#delete-confirm-modal').modal('show');
+            });
+
+            // Confirm delete button
+            $('#confirm-delete-btn').on('click', function() {
+                if (!clientToDelete) return;
+                
+                $.ajax({
+                    url: '/api/clients/' + clientToDelete,
+                    method: 'DELETE',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    success: function() {
+                        $('#delete-confirm-modal').modal('hide');
+                        window.location.reload();
+                    },
+                    error: function(xhr) {
+                        alert('Error deleting client: ' + (xhr.responseJSON?.error || 'Unknown error'));
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+================================================
+FILE: templates/dashboard.html
+================================================
+{{ define "content" }}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Status Overview
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">WhatsApp Client Status</h5>
+                <p class="card-text">
+                    {{ if .Clients }}
+                        You have {{ len .Clients }} client(s) configured.
+                        {{ if .DefaultClient }}Default client: <strong>{{ .DefaultClient }}</strong>{{ else }}No default client set.{{ end }}
+                    {{ else }}
+                        No clients configured yet. <a href="/ui/clients" class="btn btn-sm btn-primary">Add a client</a>
+                    {{ end }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {{ if .Clients }}
+        {{ range .Clients }}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    Client: {{ .ID }}
+                    {{ if eq $.DefaultClient .ID }}
+                        <span class="badge bg-success">Default</span>
+                    {{ end }}
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">
+                        {{ if .PushName }}{{ .PushName }}{{ else }}Not connected{{ end }}
+                    </h5>
+                    <p class="card-text">
+                        <strong>Status:</strong> 
+                        {{ if eq .Status "connected" }}
+                            <span class="text-success">Connected</span>
+                        {{ else if eq .Status "disconnected" }}
+                            <span class="text-warning">Disconnected</span>
+                        {{ else if eq .Status "logged_out" }}
+                            <span class="text-danger">Logged Out</span>
+                        {{ else if eq .Status "error" }}
+                            <span class="text-danger">Error</span>
+                        {{ else }}
+                            <span class="text-secondary">{{ .Status }}</span>
+                        {{ end }}
+                        <br>
+                        {{ if .PhoneNumber }}<strong>Phone:</strong> {{ .PhoneNumber }}<br>{{ end }}
+                        <strong>Last Activity:</strong> {{ .LastActivity.Format "2006-01-02 15:04:05" }}
+                    </p>
+                    <div class="d-flex">
+                        <a href="/ui/clients/{{ .ID }}" class="btn btn-primary me-2">Details</a>
+                        {{ if not .LoggedIn }}
+                            <a href="/ui/qrcode/{{ .ID }}" class="btn btn-success">QR Code</a>
+                        {{ else }}
+                            <a href="/ui/sendmessage/{{ .ID }}" class="btn btn-success">Send Message</a>
+                        {{ end }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{ end }}
+    {{ else }}
+        <div class="col-12">
+            <div class="alert alert-info">
+                No WhatsApp clients have been created yet. Get started by adding a client on the <a href="/ui/clients">Clients</a> page.
+            </div>
+        </div>
+    {{ end }}
+</div>
+{{ end }}
+
+
+
+================================================
+FILE: templates/dashboard_alt.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }} - WhatsApp Gateway</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="/static/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/ui/dashboard">WhatsApp Gateway</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/ui/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/clients">Clients</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1 class="mb-4">Dashboard</h1>
+        
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        Status Overview
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">WhatsApp Client Status</h5>
+                        <p class="card-text">
+                            {{ if .Clients }}
+                                You have {{ len .Clients }} client(s) configured.
+                                {{ if .DefaultClient }}Default client: <strong>{{ .DefaultClient }}</strong>{{ else }}No default client set.{{ end }}
+                            {{ else }}
+                                No clients configured yet. <a href="/ui/clients" class="btn btn-sm btn-primary">Add a client</a>
+                            {{ end }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            {{ if .Clients }}
+                {{ range .Clients }}
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            Client: {{ .ID }}
+                            {{ if eq $.DefaultClient .ID }}
+                                <span class="badge bg-success">Default</span>
+                            {{ end }}
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                {{ if .PushName }}{{ .PushName }}{{ else }}Not connected{{ end }}
+                            </h5>
+                            <p class="card-text">
+                                <strong>Status:</strong> 
+                                {{ if eq .Status "connected" }}
+                                    <span class="text-success">Connected</span>
+                                {{ else if eq .Status "disconnected" }}
+                                    <span class="text-warning">Disconnected</span>
+                                {{ else if eq .Status "logged_out" }}
+                                    <span class="text-danger">Logged Out</span>
+                                {{ else if eq .Status "error" }}
+                                    <span class="text-danger">Error</span>
+                                {{ else }}
+                                    <span class="text-secondary">{{ .Status }}</span>
+                                {{ end }}
+                                <br>
+                                {{ if .PhoneNumber }}<strong>Phone:</strong> {{ .PhoneNumber }}<br>{{ end }}
+                                <strong>Last Activity:</strong> {{ .LastActivity.Format "2006-01-02 15:04:05" }}
+                            </p>
+                            <div class="d-flex">
+                                <a href="/ui/clients/{{ .ID }}" class="btn btn-primary me-2">Details</a>
+                                {{ if not .LoggedIn }}
+                                    <a href="/ui/qrcode/{{ .ID }}" class="btn btn-success">QR Code</a>
+                                {{ else }}
+                                    <a href="/ui/sendmessage/{{ .ID }}" class="btn btn-success">Send Message</a>
+                                {{ end }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+            {{ else }}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        No WhatsApp clients have been created yet. Get started by adding a client on the <a href="/ui/clients">Clients</a> page.
+                    </div>
+                </div>
+            {{ end }}
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Go Simple WhatsApp Gateway</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    
+    <!-- Debug indicator for troubleshooting -->
+    <div id="js-debug" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 5px; z-index: 9999;">
+        JS Running | Template: dashboard_alt.html
+    </div>
+</body>
+</html>
+
+
+================================================
+FILE: templates/layout.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }} - WhatsApp Gateway</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="/static/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/ui/dashboard">WhatsApp Gateway</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/clients">Clients</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1 class="mb-4">{{ .Title }}</h1>
+        {{ template "content" . }}
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Go Simple WhatsApp Gateway</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    {{ block "scripts" . }}{{ end }}
+</body>
+</html>
+
+
+
+================================================
+FILE: templates/login_alt.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - WhatsApp Gateway</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="/static/css/styles.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .login-container {
+            max-width: 400px;
+            width: 100%;
+            padding: 20px;
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+            background-color: #25D366;
+            color: white;
+        }
+        .btn-primary {
+            background-color: #25D366;
+            border-color: #25D366;
+        }
+        .btn-primary:hover {
+            background-color: #128C7E;
+            border-color: #128C7E;
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo {
+            font-size: 3rem;
+            color: #25D366;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="bi bi-whatsapp"></i>
+            </div>
+            <h2>WhatsApp Gateway</h2>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Login</h5>
+            </div>
+            <div class="card-body">
+                {{ if .Error }}
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ .Error }}
+                </div>
+                {{ end }}
+                
+                <form id="login-form" method="post" action="/ui/login">
+                    <div class="mb-3">
+                        <label for="api-key" class="form-label">API Key</label>
+                        <input type="password" class="form-control" id="api-key" name="api_key" required>
+                        <div class="form-text">Enter the API key from your .env file.</div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="remember-me" name="remember" value="1" checked>
+                        <label class="form-check-label" for="remember-me">Remember me for 1 hour</label>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Login
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="text-center mt-3 text-muted">
+            <small>Go Simple WhatsApp Gateway</small>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+</body>
+</html>
+
+
+================================================
+FILE: templates/phonepairing.html
+================================================
+{{ define "content" }}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Phone Pairing
+            </div>
+            <div class="card-body text-center">
+                <div class="alert alert-warning">
+                    <h4><i class="bi bi-exclamation-triangle-fill"></i> Feature Not Available</h4>
+                    <p>Phone pairing is not available in the current version of the WhatsApp library.</p>
+                    <p>Please use <a href="/ui/qrcode/{{ .Client.ID }}" class="alert-link">QR Code Authentication</a> instead.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+
+
+================================================
+FILE: templates/qrcode.html
+================================================
+{{ define "content" }}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                QR Code Authentication
+            </div>
+            <div class="card-body text-center">
+                <h5 class="card-title">Connect WhatsApp Account</h5>
+                <p class="card-text mb-4">
+                    Scan this QR code with your WhatsApp app on your phone to log in.
+                </p>
+                
+                <div id="qr-code-container" class="mb-4">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Generating QR code...</p>
+                </div>
+
+                <div id="qr-success" class="alert alert-success" style="display:none;">
+                    <i class="bi bi-check-circle-fill"></i> Successfully connected! 
+                    <a href="/ui/clients/{{ .Client.ID }}" class="alert-link">View client details</a>
+                </div>
+
+                <div id="qr-error" class="alert alert-danger" style="display:none;">
+                    <i class="bi bi-exclamation-triangle-fill"></i> 
+                    <span id="error-message">Error generating QR code.</span>
+                </div>
+
+                <div class="mb-3">
+                    <button id="refresh-qr-btn" class="btn btn-primary">Refresh QR Code</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+    $(document).ready(function() {
+        const clientId = "{{ .Client.ID }}";
+        let statusCheckInterval;
+        
+        // Generate QR code on page load
+        generateQRCode();
+        
+        // Refresh QR code button
+        $('#refresh-qr-btn').on('click', function() {
+            generateQRCode();
+        });
+        
+        // Function to generate QR code
+        function generateQRCode() {
+            // Reset UI
+            $('#qr-code-container').html(`
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted">Generating QR code...</p>
+            `);
+            $('#qr-success').hide();
+            $('#qr-error').hide();
+            
+            // Stop any existing status check
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+            
+            // Request QR code
+            $.ajax({
+                url: '/api/clients/' + clientId + '/qr',
+                method: 'GET',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                success: function(response) {
+                    if (response.qr_code) {
+                        // Display QR code
+                        const qrCodeImg = $('<img>')
+                            .attr('src', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' + encodeURIComponent(response.qr_code))
+                            .attr('alt', 'WhatsApp QR Code')
+                            .attr('title', 'Scan with WhatsApp to connect');
+                        
+                        $('#qr-code-container').empty().append(qrCodeImg);
+                        
+                        // Start polling for status changes
+                        startStatusCheck();
+                    } else {
+                        showError('Invalid response received');
+                    }
+                },
+                error: function(xhr) {
+                    showError(xhr.responseJSON?.error || 'Failed to generate QR code');
+                }
+            });
+        }
+        
+        // Function to start polling for status
+        function startStatusCheck() {
+            statusCheckInterval = setInterval(function() {
+                $.ajax({
+                    url: '/api/clients/' + clientId,
+                    method: 'GET',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    success: function(response) {
+                        if (response.logged_in) {
+                            // Client is logged in, show success
+                            clearInterval(statusCheckInterval);
+                            $('#qr-code-container').hide();
+                            $('#qr-success').show();
+                        }
+                    },
+                    error: function() {
+                        // Ignore errors here, we're just polling
+                    }
+                });
+            }, 3000); // Check every 3 seconds
+        }
+        
+        // Function to show error
+        function showError(message) {
+            $('#qr-code-container').hide();
+            $('#error-message').text(message);
+            $('#qr-error').show();
+        }
+        
+        // Helper function to get API key
+        function getApiKey() {
+            return localStorage.getItem('api_key') || prompt('Please enter your API key:');
+        }
+    });
+</script>
+{{ end }}
+
+
+
+================================================
+FILE: templates/qrcode_alt.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Authentication - WhatsApp Gateway</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="/static/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/ui/dashboard">WhatsApp Gateway</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/clients">Clients</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>QR Code Authentication</h1>
+            <a href="/ui/clients/{{ .Client.ID }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Client
+            </a>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        QR Code Authentication for {{ .Client.ID }}
+                    </div>
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Connect WhatsApp Account</h5>
+                        <p class="card-text mb-4">
+                            Scan this QR code with your WhatsApp app on your phone to log in.
+                        </p>
+                        
+                        <div id="qr-code-container" class="mb-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="text-muted">Generating QR code...</p>
+                        </div>
+
+                        <div id="qr-success" class="alert alert-success" style="display:none;">
+                            <i class="bi bi-check-circle-fill"></i> Successfully connected! 
+                            <a href="/ui/clients/{{ .Client.ID }}" class="alert-link">View client details</a>
+                        </div>
+
+                        <div id="qr-error" class="alert alert-danger" style="display:none;">
+                            <i class="bi bi-exclamation-triangle-fill"></i> 
+                            <span id="error-message">Error generating QR code.</span>
+                        </div>
+
+                        <div class="mb-3">
+                            <button id="refresh-qr-btn" class="btn btn-primary">Refresh QR Code</button>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill"></i> 
+                            <span>To connect, open WhatsApp on your phone, go to Settings > Linked Devices > Link a Device, then scan this QR code.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Go Simple WhatsApp Gateway</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    
+    <!-- Debug indicator for troubleshooting -->
+    <div id="js-debug" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 5px; z-index: 9999;">
+        JS Running | Template: qrcode_alt.html
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            const clientId = "{{ .Client.ID }}";
+            let statusCheckInterval;
+            
+            // Generate QR code on page load
+            generateQRCode();
+            
+            // Refresh QR code button
+            $('#refresh-qr-btn').on('click', function() {
+                generateQRCode();
+            });
+            
+            // Function to generate QR code
+            function generateQRCode() {
+                // Reset UI
+                $('#qr-code-container').html(`
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Generating QR code...</p>
+                `);
+                $('#qr-success').hide();
+                $('#qr-error').hide();
+                
+                // Stop any existing status check
+                if (statusCheckInterval) {
+                    clearInterval(statusCheckInterval);
+                }
+                
+                // Request QR code
+                $.ajax({
+                    url: '/api/clients/' + clientId + '/qr',
+                    method: 'GET',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    success: function(response) {
+                        console.log('QR code response:', response); // Add debugging
+                        if (response && response.qr_code) {
+                            // Display QR code
+                            const qrCodeImg = $('<img>')
+                                .attr('src', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' + encodeURIComponent(response.qr_code))
+                                .attr('alt', 'WhatsApp QR Code')
+                                .attr('title', 'Scan with WhatsApp to connect');
+                            
+                            $('#qr-code-container').empty().append(qrCodeImg);
+                            
+                            // Start polling for status changes
+                            startStatusCheck();
+                        } else {
+                            showError('QR code not received in the response. Please try again.');
+                        }
+                    },
+                    error: function(xhr) {
+                        let errorMsg = 'Failed to generate QR code';
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            errorMsg += ': ' + xhr.responseJSON.error;
+                        }
+                        showError(errorMsg);
+                        console.error('QR code error:', xhr.responseText); // Add debugging
+                    }
+                });
+            }
+            
+            // Function to start polling for status
+            function startStatusCheck() {
+                statusCheckInterval = setInterval(function() {
+                    $.ajax({
+                        url: '/api/clients/' + clientId,
+                        method: 'GET',
+                        headers: {
+                            'X-API-Key': getApiKey()
+                        },
+                        success: function(response) {
+                            if (response.logged_in) {
+                                // Client is logged in, show success
+                                clearInterval(statusCheckInterval);
+                                $('#qr-code-container').hide();
+                                $('#qr-success').show();
+                            }
+                        },
+                        error: function() {
+                            // Ignore errors here, we're just polling
+                        }
+                    });
+                }, 3000); // Check every 3 seconds
+            }
+            
+            // Function to show error
+            function showError(message) {
+                $('#qr-code-container').hide();
+                $('#error-message').text(message);
+                $('#qr-error').show();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+================================================
+FILE: templates/qrcode_alt2.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Authentication - WhatsApp Gateway</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="/static/css/styles.css" rel="stylesheet">
+    <style>
+        #qr-code-container canvas {
+            border: 10px solid white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/ui/dashboard">WhatsApp Gateway</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/clients">Clients</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>QR Code Authentication</h1>
+            <a href="/ui/clients/{{ .Client.ID }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Client
+            </a>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        QR Code Authentication for {{ .Client.ID }}
+                    </div>
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Connect WhatsApp Account</h5>
+                        <p class="card-text mb-4">
+                            Scan this QR code with your WhatsApp app on your phone to log in.
+                        </p>
+                        
+                        <div id="qr-code-container" class="mb-4 text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="text-muted">Generating QR code...</p>
+                        </div>
+
+                        <div id="qr-success" class="alert alert-success" style="display:none;">
+                            <i class="bi bi-check-circle-fill"></i> Successfully connected! 
+                            <a href="/ui/clients/{{ .Client.ID }}" class="alert-link">View client details</a>
+                        </div>
+
+                        <div id="qr-error" class="alert alert-danger" style="display:none;">
+                            <i class="bi bi-exclamation-triangle-fill"></i> 
+                            <span id="error-message">Error generating QR code.</span>
+                        </div>
+
+                        <div class="mb-3">
+                            <button id="refresh-qr-btn" class="btn btn-primary">Refresh QR Code</button>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill"></i> 
+                            <span>To connect, open WhatsApp on your phone, go to Settings > Linked Devices > Link a Device, then scan this QR code.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Go Simple WhatsApp Gateway</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    
+    <!-- Debug indicator for troubleshooting -->
+    <div id="js-debug" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 5px; z-index: 9999;">
+        JS Running | Template: qrcode_alt2.html
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            const clientId = "{{ .Client.ID }}";
+            console.log('Client ID:', clientId);
+            let statusCheckInterval;
+            
+            // Generate QR code on page load
+            generateQRCode();
+            
+            // Refresh QR code button
+            $('#refresh-qr-btn').on('click', function() {
+                generateQRCode();
+            });
+            
+            // Function to generate QR code
+            function generateQRCode() {
+                console.log('Generating QR code for client:', clientId);
+                
+                // Reset UI
+                $('#qr-code-container').html(`
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Generating QR code...</p>
+                `);
+                $('#qr-success').hide();
+                $('#qr-error').hide();
+                
+                // Stop any existing status check
+                if (statusCheckInterval) {
+                    clearInterval(statusCheckInterval);
+                }
+                
+                // Request QR code
+                $.ajax({
+                    url: '/api/clients/' + clientId + '/qr',
+                    method: 'GET',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    success: function(response) {
+                        console.log('QR code response received');
+                        if (response && response.qr_code) {
+                            // Clear the container
+                            const qrContainer = $('#qr-code-container');
+                            qrContainer.empty();
+                            
+                            // Create a canvas for QR code
+                            const canvas = document.createElement('canvas');
+                            qrContainer.append(canvas);
+                            
+                            // Generate QR code using the library
+                            QRCode.toCanvas(canvas, response.qr_code, {
+                                width: 256,
+                                margin: 1,
+                                color: {
+                                    dark: '#000000',
+                                    light: '#ffffff'
+                                }
+                            }, function(error) {
+                                if (error) {
+                                    showError('Failed to render QR code: ' + error.toString());
+                                } else {
+                                    // Add text below QR code
+                                    const p = document.createElement('p');
+                                    p.className = 'mt-3';
+                                    p.innerText = 'Scan this QR code with your WhatsApp app';
+                                    qrContainer.append(p);
+                                    
+                                    // Start polling for status changes
+                                    startStatusCheck();
+                                }
+                            });
+                        } else {
+                            showError('QR code data not received in the response. Please try again.');
+                        }
+                    },
+                    error: function(xhr) {
+                        let errorMsg = 'Failed to generate QR code';
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            errorMsg += ': ' + xhr.responseJSON.error;
+                        }
+                        
+                        // Check if client is already logged in
+                        if (xhr.responseJSON && xhr.responseJSON.logged_in) {
+                            $('#qr-code-container').hide();
+                            $('#qr-success').show();
+                        } else {
+                            showError(errorMsg);
+                            // Special handling for client outdated error
+                            if (errorMsg.includes('WhatsApp Web client outdated')) {
+                                $('#qr-error').append(`
+                                    <div class="mt-3">
+                                        <p>This error occurs when the WhatsApp Web client is outdated. Options to fix this:</p>
+                                        <ol>
+                                            <li>Update the whatsmeow library to the latest version</li>
+                                            <li>Wait for WhatsApp to update their web client</li>
+                                            <li>Try using the legacy API endpoints which might still work</li>
+                                        </ol>
+                                    </div>
+                                `);
+                            }
+                            console.error('QR code error:', xhr.responseText);
+                        }
+                    }
+                });
+            }
+            
+            // Function to start polling for status
+            function startStatusCheck() {
+                statusCheckInterval = setInterval(function() {
+                    $.ajax({
+                        url: '/api/clients/' + clientId,
+                        method: 'GET',
+                        headers: {
+                            'X-API-Key': getApiKey()
+                        },
+                        success: function(response) {
+                            if (response.logged_in) {
+                                // Client is logged in, show success
+                                clearInterval(statusCheckInterval);
+                                $('#qr-code-container').hide();
+                                $('#qr-success').show();
+                            }
+                        },
+                        error: function() {
+                            // Ignore errors here, we're just polling
+                        }
+                    });
+                }, 3000); // Check every 3 seconds
+            }
+            
+            // Function to show error
+            function showError(message) {
+                $('#qr-code-container').hide();
+                $('#error-message').text(message);
+                $('#qr-error').show();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+================================================
+FILE: templates/sendmessage.html
+================================================
+{{ define "content" }}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Send WhatsApp Message
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">Client: {{ .Client.ID }}</h5>
+                
+                <div class="alert alert-info mb-4">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <strong>Status:</strong>
+                            {{ if eq .Client.Status "connected" }}
+                                <span class="text-success">Connected</span>
+                            {{ else if eq .Client.Status "disconnected" }}
+                                <span class="text-warning">Disconnected</span>
+                            {{ else if eq .Client.Status "logged_out" }}
+                                <span class="text-danger">Logged Out</span>
+                            {{ else if eq .Client.Status "error" }}
+                                <span class="text-danger">Error</span>
+                            {{ else }}
+                                <span class="text-secondary">{{ .Client.Status }}</span>
+                            {{ end }}
+                            <br>
+                            {{ if .Client.PushName }}<strong>User:</strong> {{ .Client.PushName }}{{ end }}
+                            {{ if .Client.PhoneNumber }}<br><strong>Phone:</strong> {{ .Client.PhoneNumber }}{{ end }}
+                        </div>
+                    </div>
+                </div>
+                
+                {{ if not .Client.LoggedIn }}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle-fill"></i> 
+                    This client is not logged in. Please <a href="/ui/clients/{{ .Client.ID }}">connect</a> before sending messages.
+                </div>
+                {{ else }}
+                <form id="send-message-form">
+                    <div class="mb-3">
+                        <label for="recipient" class="form-label">Recipient Phone Number</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="recipient" placeholder="e.g. +628123456789" required>
+                        </div>
+                        <div class="form-text">Include the country code with + symbol (e.g. +1 for US, +44 for UK).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea class="form-control" id="message" rows="5" placeholder="Enter your message" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Message</button>
+                </form>
+                
+                <div id="send-result" class="mt-4" style="display:none;">
+                    <div id="send-success" class="alert alert-success" style="display:none;">
+                        <i class="bi bi-check-circle-fill"></i> Message sent successfully!
+                    </div>
+                    <div id="send-error" class="alert alert-danger" style="display:none;">
+                        <i class="bi bi-exclamation-triangle-fill"></i> 
+                        <span id="error-message">Error sending message.</span>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+    $(document).ready(function() {
+        const clientId = "{{ .Client.ID }}";
+        
+        // Send message form submission
+        $('#send-message-form').on('submit', function(e) {
+            e.preventDefault();
+            
+            const recipient = $('#recipient').val();
+            const message = $('#message').val();
+            
+            if (!recipient || !message) {
+                alert('Please enter both recipient and message');
+                return;
+            }
+            
+            // Hide any previous results
+            $('#send-result').hide();
+            $('#send-success').hide();
+            $('#send-error').hide();
+            
+            // Send the message
+            $.ajax({
+                url: '/api/clients/' + clientId + '/send',
+                method: 'POST',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    recipient: recipient,
+                    message: message
+                }),
+                success: function() {
+                    // Show success
+                    $('#send-result').show();
+                    $('#send-success').show();
+                },
+                error: function(xhr) {
+                    // Show error
+                    $('#error-message').text(xhr.responseJSON?.error || 'Failed to send message');
+                    $('#send-result').show();
+                    $('#send-error').show();
+                }
+            });
+        });
+        
+        // Helper function to get API key
+        function getApiKey() {
+            return localStorage.getItem('api_key') || prompt('Please enter your API key:');
+        }
+    });
+</script>
+{{ end }}
+
+
+
+================================================
+FILE: templates/sendmessage_alt.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send Message - WhatsApp Gateway</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="/static/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/ui/dashboard">WhatsApp Gateway</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/clients">Clients</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Send WhatsApp Message</h1>
+            <a href="/ui/clients/{{ .Client.ID }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Client
+            </a>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        Send Message using {{ .Client.ID }}
+                        {{ if eq .Client.Status "connected" }}
+                            <span class="badge bg-success">Connected</span>
+                        {{ else }}
+                            <span class="badge bg-danger">Not Connected</span>
+                        {{ end }}
+                    </div>
+                    <div class="card-body">
+                        {{ if ne .Client.Status "connected" }}
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle-fill"></i> 
+                                This client is not connected to WhatsApp. Messages may not be delivered.
+                            </div>
+                        {{ end }}
+                        
+                        <form id="send-message-form">
+                            <div class="mb-3">
+                                <label for="recipient" class="form-label">Recipient Phone Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">+</span>
+                                    <input type="text" class="form-control" id="recipient" placeholder="e.g. 628123456789 or 12345678901" required>
+                                </div>
+                                <div class="form-text">
+                                    Enter the full phone number including country code. The + sign is optional.
+                                    <ul>
+                                        <li>Format examples: <code>628123456789</code>, <code>+628123456789</code>, or <code>628123456789@s.whatsapp.net</code></li>
+                                        <li>Include country code (e.g., 62 for Indonesia, 1 for US/Canada)</li>
+                                        <li>Do not include spaces, dashes or other special characters</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="message" class="form-label">Message</label>
+                                <textarea class="form-control" id="message" rows="5" placeholder="Type your message here..." required></textarea>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send"></i> Send Message
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div id="result-container" class="mt-3" style="display: none;"></div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">
+                        Recent Messages
+                    </div>
+                    <div class="card-body">
+                        <div id="recent-messages">
+                            <p class="text-muted text-center">No recent messages to display.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Go Simple WhatsApp Gateway</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    
+    <!-- Debug indicator for troubleshooting -->
+    <div id="js-debug" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 5px; z-index: 9999;">
+        JS Running | Template: sendmessage_alt.html
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            const clientId = "{{ .Client.ID }}";
+            
+            // Message form submission
+            $('#send-message-form').on('submit', function(e) {
+                e.preventDefault();
+                
+                const recipient = $('#recipient').val().trim();
+                const message = $('#message').val().trim();
+                
+                if (!recipient || !message) {
+                    showResult('error', 'Please fill in all fields');
+                    return;
+                }
+                
+                // Disable form while sending
+                const submitBtn = $(this).find('button[type="submit"]');
+                const originalBtnText = submitBtn.html();
+                submitBtn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...').prop('disabled', true);
+                
+                // Send the message
+                $.ajax({
+                    url: '/api/clients/' + clientId + '/send',
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        recipient: recipient,
+                        message: message
+                    }),
+                    success: function(response) {
+                        showResult('success', 'Message sent successfully!');
+                        
+                        // Clear the message field (keep the recipient)
+                        $('#message').val('');
+                    },
+                    error: function(xhr) {
+                        let errorMsg = 'Error sending message';
+                        
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            errorMsg += ': ' + xhr.responseJSON.error;
+                            
+                            // Enhanced error handling for specific error messages
+                            if (errorMsg.includes('invalid recipient: not a user JID')) {
+                                errorMsg = 'Invalid phone number format. Please use the format shown in the examples above.';
+                            } else if (errorMsg.includes('invalid recipient')) {
+                                errorMsg = 'Invalid recipient phone number. Make sure to include the country code.';
+                            } else if (errorMsg.includes('not connected') || errorMsg.includes('not logged in')) {
+                                errorMsg = 'WhatsApp client is not connected. Please reconnect using the QR code first.';
+                            }
+                        } else {
+                            errorMsg += ': Unknown error';
+                        }
+                        
+                        showResult('error', errorMsg);
+                        console.error('Send message error:', xhr.responseText);
+                    },
+                    complete: function() {
+                        // Re-enable the form
+                        submitBtn.html(originalBtnText).prop('disabled', false);
+                    }
+                });
+            });
+            
+            // Function to show result message
+            function showResult(type, message) {
+                const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                const icon = type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
+                
+                $('#result-container')
+                    .html(`<div class="alert ${alertClass}"><i class="bi ${icon} me-2"></i>${message}</div>`)
+                    .show();
+                
+                // Scroll to the result
+                $('html, body').animate({
+                    scrollTop: $('#result-container').offset().top - 100
+                }, 200);
+                
+                // Hide after 5 seconds if it's a success
+                if (type === 'success') {
+                    setTimeout(function() {
+                        $('#result-container').fadeOut();
+                    }, 5000);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+================================================
+FILE: templates/test.html
+================================================
+{{ define "content" }}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                System Test Page
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">Template Rendering Test</h5>
+                <p class="card-text">
+                    If you can see this page, template rendering is working correctly.
+                </p>
+                <div class="alert alert-info">
+                    <strong>Server Info:</strong>
+                    <ul>
+                        <li>Go version: {{ .GoVersion }}</li>
+                        <li>Timestamp: {{ .Timestamp }}</li>
+                        <li>Template system: Working</li>
+                    </ul>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>CSS Test</h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="p-3 mb-3 bg-primary text-white">Primary</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 mb-3 bg-success text-white">Success</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 mb-3 bg-danger text-white">Danger</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 mb-3 bg-warning text-dark">Warning</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>JavaScript Test</h6>
+                    <button id="js-test-btn" class="btn btn-primary">Click Me</button>
+                    <span id="js-test-result" class="ms-3"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+    $(document).ready(function() {
+        $('#js-test-btn').on('click', function() {
+            $('#js-test-result').html('<span class="text-success">JavaScript is working!</span>');
+        });
+    });
+</script>
+{{ end }}
+
+
+================================================
+FILE: templates/test_alt.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Test - WhatsApp Gateway</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="/static/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/ui/dashboard">WhatsApp Gateway</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ui/clients">Clients</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/test">Test</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1 class="mb-4">System Test Page</h1>
+        
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        System Test
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Template Rendering Test</h5>
+                        <p class="card-text">
+                            If you can see this page, template rendering is working correctly.
+                        </p>
+                        <div class="alert alert-info">
+                            <strong>Server Info:</strong>
+                            <ul>
+                                <li>Go version: {{ .GoVersion }}</li>
+                                <li>Timestamp: {{ .Timestamp }}</li>
+                                <li>Template system: Working</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h6>CSS Test</h6>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="p-3 mb-3 bg-primary text-white">Primary</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3 mb-3 bg-success text-white">Success</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3 mb-3 bg-danger text-white">Danger</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3 mb-3 bg-warning text-dark">Warning</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h6>JavaScript Test</h6>
+                            <button id="js-test-btn" class="btn btn-primary">Click Me</button>
+                            <span id="js-test-result" class="ms-3"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Go Simple WhatsApp Gateway</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    
+    <!-- Debug indicator for troubleshooting -->
+    <div id="js-debug" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 5px; z-index: 9999;">
+        JS Running | Template: test_alt.html
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            $('#js-test-btn').on('click', function() {
+                $('#js-test-result').html('<span class="text-success">JavaScript is working!</span>');
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+================================================
+FILE: whatsapp/client.go
+================================================
+package whatsapp
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+
+	"go.mau.fi/whatsmeow"
+	waProto "go.mau.fi/whatsmeow/binary/proto"
+	"go.mau.fi/whatsmeow/store"
+	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types"
+	"go.mau.fi/whatsmeow/types/events"
+	waLog "go.mau.fi/whatsmeow/util/log"
+	"google.golang.org/protobuf/proto"
+
+	_ "github.com/mattn/go-sqlite3"
+)
+
+// ClientStatus represents the connection status of a WhatsApp client
+type ClientStatus string
+
+const (
+	StatusLoggedOut ClientStatus = "logged_out"
+	StatusConnected ClientStatus = "connected"
+	StatusDisconnected ClientStatus = "disconnected"
+	StatusError ClientStatus = "error"
+)
+
+// ClientState represents the persistent state of a client
+type ClientState struct {
+	ID               string       `json:"id"`
+	Status           ClientStatus `json:"status"`
+	LastActivity     time.Time    `json:"last_activity"`
+	Connected        bool         `json:"connected"`
+	LoggedIn         bool         `json:"logged_in"`
+	PushName         string       `json:"push_name"`
+	PhoneNumber      string       `json:"phone_number,omitempty"`
+	ConnectionError  string       `json:"connection_error,omitempty"`
+}
+
+// Client represents a WhatsApp client instance
+type Client struct {
+	ID           string
+	client       *whatsmeow.Client
+	container    *sqlstore.Container
+	eventHandler func(event interface{})
+	deviceStore  *store.Device
+	
+	// Client state
+	status      ClientStatus
+	lastActivity time.Time
+	connError   string
+	
+	// For safe concurrent access
+	mutex       sync.RWMutex
+	
+	// For QR channel
+	qrChan      chan string
+	qrTimeout   *time.Timer
+	
+	// For phone pairing channel
+	pairChan    chan string
+	pairTimeout *time.Timer
+	
+	// Data directory
+	dataDir     string
+}
+
+// NewClient creates a new WhatsApp client
+func NewClient(id string, dataDir string) (*Client, error) {
+	if id == "" {
+		return nil, errors.New("client ID cannot be empty")
+	}
+
+	// Create client directory
+	clientDir := filepath.Join(dataDir, id)
+	if err := os.MkdirAll(clientDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create client directory: %w", err)
+	}
+
+	// Create database file
+	dbPath := filepath.Join(clientDir, "whatsapp.db")
+	container, err := sqlstore.New("sqlite3", "file:"+dbPath+"?_foreign_keys=on", waLog.Stdout("sqlstore", "DEBUG", true))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	// Get device store
+	deviceStore, err := container.GetFirstDevice()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get device: %w", err)
+	}
+
+	// Create the client
+	wac := whatsmeow.NewClient(deviceStore, waLog.Stdout("whatsapp", "INFO", true))
+
+	// Create the client wrapper
+	c := &Client{
+		ID:          id,
+		client:      wac,
+		container:   container,
+		deviceStore: deviceStore,
+		status:      StatusLoggedOut,
+		lastActivity: time.Now(),
+		dataDir:     clientDir,
+		qrChan:      make(chan string),
+		pairChan:    make(chan string),
+	}
+
+	// Set up event handler
+	wac.AddEventHandler(c.handleEvent)
+
+	return c, nil
+}
+
+// Connect connects the client to WhatsApp
+func (c *Client) Connect() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	// Update activity timestamp
+	c.lastActivity = time.Now()
+
+	// Check if already connected
+	if c.client.IsConnected() {
+		return nil
+	}
+
+	// Connect to WhatsApp
+	err := c.client.Connect()
+	if err != nil {
+		c.status = StatusError
+		c.connError = err.Error()
+		return fmt.Errorf("failed to connect: %w", err)
+	}
+
+	// Update status
+	if c.client.IsLoggedIn() {
+		c.status = StatusConnected
+	} else {
+		c.status = StatusDisconnected
+	}
+
+	return nil
+}
+
+// Disconnect disconnects the client from WhatsApp
+func (c *Client) Disconnect() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	// Update activity timestamp
+	c.lastActivity = time.Now()
+
+	// Check if connected
+	if !c.client.IsConnected() {
+		return nil
+	}
+
+	// Disconnect
+	c.client.Disconnect()
+	c.status = StatusDisconnected
+
+	return nil
+}
+
+// Logout logs out the client and removes device store
+func (c *Client) Logout() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	// Update activity timestamp
+	c.lastActivity = time.Now()
+
+	// Check if logged in
+	if !c.client.IsLoggedIn() {
+		return nil
+	}
+
+	// Logout
+	err := c.client.Logout()
+	if err != nil {
+		c.status = StatusError
+		c.connError = err.Error()
+		return fmt.Errorf("failed to logout: %w", err)
+	}
+
+	c.status = StatusLoggedOut
+	return nil
+}
+
+// GenerateQR generates a QR code for authentication
+func (c *Client) GenerateQR() (string, error) {
+	c.mutex.Lock()
+
+	// Update activity timestamp
+	c.lastActivity = time.Now()
+
+	// Check if already logged in
+	if c.client.IsLoggedIn() {
+		c.mutex.Unlock()
+		return "", errors.New("already logged in")
+	}
+	
+	// Disconnect first if already connected
+	if c.client.IsConnected() {
+		c.client.Disconnect()
+	}
+
+	// Get QR channel BEFORE connecting
+	qrChan, err := c.client.GetQRChannel(context.Background())
+	if err != nil {
+		c.status = StatusError
+		c.connError = err.Error()
+		c.mutex.Unlock()
+		return "", fmt.Errorf("failed to request QR: %w", err)
+	}
+
+	// Now connect after getting QR channel
+	err = c.client.Connect()
+	if err != nil {
+		c.status = StatusError
+		c.connError = err.Error()
+		c.mutex.Unlock()
+		return "", fmt.Errorf("failed to connect: %w", err)
+	}
+
+	// Release the mutex while waiting for the QR code
+	c.mutex.Unlock()
+	
+	// Wait for QR code with timeout handling
+	select {
+	case evt := <-qrChan:
+		// Check the event type
+		if evt.Event == "code" {
+			return evt.Code, nil
+		} else if evt.Event == "err-client-outdated" {
+			// This error means the WhatsApp Web version is outdated
+			// Real solution would be to update whatsmeow library
+			return "", errors.New("WhatsApp Web client outdated. Please update the whatsmeow library or try again later.")
+		}
+		return "", fmt.Errorf("unexpected QR event: %s", evt.Event)
+		
+	case <-time.After(30 * time.Second):
+		return "", errors.New("timeout waiting for QR code")
+	}
+}
+
+// PairPhone pairs the client with a phone number
+func (c *Client) PairPhone(phoneNumber string) error {
+	// Note: Direct phone pairing is not available in the current whatsmeow version
+	// This is a placeholder that will always return an error
+	return errors.New("phone pairing is not available in the current library version, please use QR code authentication")
+}
+
+// GetPairingCode gets the pairing code after a PairPhone request
+func (c *Client) GetPairingCode() (string, error) {
+	// Since phone pairing is not available, always return an error
+	return "", errors.New("phone pairing is not available in the current library version")
+}
+
+// SendMessage sends a WhatsApp message
+func (c *Client) SendMessage(recipient string, message string) error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	// Update activity timestamp
+	c.lastActivity = time.Now()
+
+	// Check if connected and logged in
+	if !c.client.IsConnected() {
+		return errors.New("not connected")
+	}
+	if !c.client.IsLoggedIn() {
+		return errors.New("not logged in")
+	}
+
+	// Format the recipient properly for JID
+	// Remove any potential + at the beginning
+	if len(recipient) > 0 && recipient[0] == '+' {
+		recipient = recipient[1:]
+	}
+	
+	// Ensure the recipient has the right format: number@s.whatsapp.net
+	if !strings.Contains(recipient, "@") {
+		recipient = recipient + "@s.whatsapp.net"
+	}
+
+	// Parse recipient JID
+	jid, err := types.ParseJID(recipient)
+	if err != nil {
+		return fmt.Errorf("invalid recipient: %w", err)
+	}
+	if jid.Server != types.DefaultUserServer {
+		return fmt.Errorf("invalid recipient: not a user JID")
+	}
+	if jid.User == "" {
+		return fmt.Errorf("invalid recipient: empty user")
+	}
+
+	// Create message
+	msg := &waProto.Message{
+		Conversation: proto.String(message),
+	}
+
+	// Send message
+	_, err = c.client.SendMessage(context.Background(), jid, msg)
+	if err != nil {
+		return fmt.Errorf("failed to send message: %w", err)
+	}
+
+	return nil
+}
+
+// GetState returns the current client state
+func (c *Client) GetState() ClientState {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	connected := c.client.IsConnected()
+	loggedIn := c.client.IsLoggedIn()
+	
+	var status ClientStatus
+	if loggedIn {
+		status = StatusConnected
+	} else if connected {
+		status = StatusDisconnected
+	} else {
+		status = c.status
+	}
+	
+	// Get device info
+	var pushName, phoneNumber string
+	if c.deviceStore.PushName != "" {
+		pushName = c.deviceStore.PushName
+	}
+	if loggedIn && c.client.Store.ID != nil {
+		phoneNumber = c.client.Store.ID.User
+	}
+
+	return ClientState{
+		ID:              c.ID,
+		Status:          status,
+		LastActivity:    c.lastActivity,
+		Connected:       connected,
+		LoggedIn:        loggedIn,
+		PushName:        pushName,
+		PhoneNumber:     phoneNumber,
+		ConnectionError: c.connError,
+	}
+}
+
+// Close closes the client and cleans up resources
+func (c *Client) Close() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	// Disconnect if connected
+	if c.client.IsConnected() {
+		c.client.Disconnect()
+	}
+
+	// No need to close the container in newer versions
+	return nil
+}
+
+// SaveState saves the client state to a file
+func (c *Client) SaveState() error {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	// Get current state
+	state := c.GetState()
+
+	// Marshal to JSON
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal state: %w", err)
+	}
+
+	// Write to file
+	stateFile := filepath.Join(c.dataDir, "state.json")
+	if err := os.WriteFile(stateFile, data, 0644); err != nil {
+		return fmt.Errorf("failed to write state file: %w", err)
+	}
+
+	return nil
+}
+
+// handleEvent handles WhatsApp events
+func (c *Client) handleEvent(evt interface{}) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	// Update activity timestamp
+	c.lastActivity = time.Now()
+
+	// Handle specific events
+	switch evt.(type) {
+	case *events.QR:
+		// For the QR event, we'll just send a notification
+		// The actual QR code data is handled by the GetQRChannel method
+		if c.qrChan != nil {
+			select {
+			case c.qrChan <- "qr_event_received":
+				// Notification sent successfully
+			default:
+				// Channel not ready, ignore
+			}
+		}
+	case *events.Connected:
+		c.status = StatusConnected
+		c.connError = ""
+	case *events.Disconnected:
+		if c.client.IsLoggedIn() {
+			c.status = StatusDisconnected
+		} else {
+			c.status = StatusLoggedOut
+		}
+	}
+
+	// Call the custom event handler if set
+	if c.eventHandler != nil {
+		c.eventHandler(evt)
+	}
+}
+
+// SetEventHandler sets a custom event handler
+func (c *Client) SetEventHandler(handler func(interface{})) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.eventHandler = handler
+}
+
+
+
+================================================
+FILE: whatsapp/client_manager.go
+================================================
+package whatsapp
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
+)
+
+// ClientManager manages multiple WhatsApp clients
+type ClientManager struct {
+	clients       map[string]*Client
+	defaultClient string
+	dataDir       string
+	mutex         sync.RWMutex
+	saveTimer     *time.Timer
+}
+
+// NewClientManager creates a new client manager
+func NewClientManager(dataDir string) *ClientManager {
+	// Create data directory if it doesn't exist
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		panic(fmt.Sprintf("Failed to create data directory: %v", err))
+	}
+
+	cm := &ClientManager{
+		clients: make(map[string]*Client),
+		dataDir: dataDir,
+	}
+
+	// Set up periodic state saving
+	cm.saveTimer = time.AfterFunc(5*time.Minute, cm.periodicSave)
+
+	return cm
+}
+
+// periodicSave saves all client states periodically
+func (cm *ClientManager) periodicSave() {
+	defer cm.saveTimer.Reset(5 * time.Minute)
+
+	if err := cm.SaveClients(); err != nil {
+		fmt.Printf("Warning: Failed to save clients: %v\n", err)
+	}
+}
+
+// LoadClients loads saved clients from disk
+func (cm *ClientManager) LoadClients() error {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
+	// Read clients directory
+	entries, err := os.ReadDir(cm.dataDir)
+	if err != nil {
+		return fmt.Errorf("failed to read data directory: %w", err)
+	}
+
+	// Load each client
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		clientID := entry.Name()
+		stateFile := filepath.Join(cm.dataDir, clientID, "state.json")
+
+		// Check if state file exists
+		if _, err := os.Stat(stateFile); os.IsNotExist(err) {
+			continue
+		}
+
+		// Read state file
+		data, err := os.ReadFile(stateFile)
+		if err != nil {
+			fmt.Printf("Warning: Failed to read state file for %s: %v\n", clientID, err)
+			continue
+		}
+
+		// Parse state
+		var state ClientState
+		if err := json.Unmarshal(data, &state); err != nil {
+			fmt.Printf("Warning: Failed to parse state for %s: %v\n", clientID, err)
+			continue
+		}
+
+		// Create client
+		client, err := NewClient(clientID, cm.dataDir)
+		if err != nil {
+			fmt.Printf("Warning: Failed to create client %s: %v\n", clientID, err)
+			continue
+		}
+
+		// Add to map
+		cm.clients[clientID] = client
+
+		// Check for default client flag
+		defaultFile := filepath.Join(cm.dataDir, "default_client")
+		if data, err := os.ReadFile(defaultFile); err == nil {
+			cm.defaultClient = string(data)
+		}
+
+		// Connect if previously connected
+		if state.Status == StatusConnected || state.Connected {
+			go func(c *Client) {
+				if err := c.Connect(); err != nil {
+					fmt.Printf("Warning: Failed to connect client %s: %v\n", c.ID, err)
+				}
+			}(client)
+		}
+	}
+
+	return nil
+}
+
+// SaveClients saves all client states to disk
+func (cm *ClientManager) SaveClients() error {
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+
+	// Save each client
+	for _, client := range cm.clients {
+		if err := client.SaveState(); err != nil {
+			fmt.Printf("Warning: Failed to save state for %s: %v\n", client.ID, err)
+		}
+	}
+
+	// Save default client
+	if cm.defaultClient != "" {
+		defaultFile := filepath.Join(cm.dataDir, "default_client")
+		if err := os.WriteFile(defaultFile, []byte(cm.defaultClient), 0644); err != nil {
+			return fmt.Errorf("failed to save default client: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// CreateClient creates a new WhatsApp client
+func (cm *ClientManager) CreateClient(id string) (*Client, error) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
+	// Check if ID is empty
+	if id == "" {
+		return nil, errors.New("client ID cannot be empty")
+	}
+
+	// Check if ID already exists
+	if _, exists := cm.clients[id]; exists {
+		return nil, fmt.Errorf("client with ID %s already exists", id)
+	}
+
+	// Create client
+	client, err := NewClient(id, cm.dataDir)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add to map
+	cm.clients[id] = client
+
+	// Set as default if first client
+	if len(cm.clients) == 1 && cm.defaultClient == "" {
+		cm.defaultClient = id
+	}
+
+	// Save state
+	if err := client.SaveState(); err != nil {
+		fmt.Printf("Warning: Failed to save initial state for %s: %v\n", id, err)
+	}
+
+	return client, nil
+}
+
+// GetClient gets a client by ID
+func (cm *ClientManager) GetClient(id string) (*Client, error) {
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+
+	// If ID is empty, use default client
+	if id == "" {
+		if cm.defaultClient == "" {
+			return nil, errors.New("no default client set")
+		}
+		id = cm.defaultClient
+	}
+
+	// Check if client exists
+	client, exists := cm.clients[id]
+	if !exists {
+		return nil, fmt.Errorf("client %s not found", id)
+	}
+
+	return client, nil
+}
+
+// DeleteClient deletes a client
+func (cm *ClientManager) DeleteClient(id string) error {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
+	// Check if client exists
+	client, exists := cm.clients[id]
+	if !exists {
+		return fmt.Errorf("client %s not found", id)
+	}
+
+	// First, manually disconnect and logout to ensure proper cleanup
+	if client.client != nil {
+		// Disconnect if connected
+		if client.client.IsConnected() {
+			client.client.Disconnect()
+		}
+		
+		// Try to logout if needed
+		if client.client.IsLoggedIn() {
+			_ = client.client.Logout()
+		}
+	}
+
+	// Close client
+	if err := client.Close(); err != nil {
+		return err
+	}
+
+	// Remove from map
+	delete(cm.clients, id)
+
+	// If it was the default client, unset default
+	if cm.defaultClient == id {
+		cm.defaultClient = ""
+		
+		// If there are other clients, set the first one as default
+		if len(cm.clients) > 0 {
+			for newDefault := range cm.clients {
+				cm.defaultClient = newDefault
+				break
+			}
+		}
+	}
+
+	// Wait a moment to ensure all handles are closed
+	time.Sleep(1 * time.Second)
+
+	// Remove client directory
+	clientDir := filepath.Join(cm.dataDir, id)
+	if err := os.RemoveAll(clientDir); err != nil {
+		// Log but don't return error - we've already removed from memory
+		fmt.Printf("Warning: Failed to remove client directory for %s: %v\n", id, err)
+	}
+
+	return nil
+}
+
+// SetDefaultClient sets the default client
+func (cm *ClientManager) SetDefaultClient(id string) error {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
+	// Check if client exists
+	if _, exists := cm.clients[id]; !exists {
+		return fmt.Errorf("client %s not found", id)
+	}
+
+	// Set as default
+	cm.defaultClient = id
+
+	// Save to file
+	defaultFile := filepath.Join(cm.dataDir, "default_client")
+	if err := os.WriteFile(defaultFile, []byte(id), 0644); err != nil {
+		return fmt.Errorf("failed to save default client: %w", err)
+	}
+
+	return nil
+}
+
+// GetDefaultClient gets the default client ID
+func (cm *ClientManager) GetDefaultClient() string {
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+
+	return cm.defaultClient
+}
+
+// ListClients lists all clients
+func (cm *ClientManager) ListClients() []ClientState {
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+
+	// Create list
+	states := make([]ClientState, 0, len(cm.clients))
+	for _, client := range cm.clients {
+		states = append(states, client.GetState())
+	}
+
+	return states
+}
+
+// Close closes all clients
+func (cm *ClientManager) Close() {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
+	// Stop save timer
+	if cm.saveTimer != nil {
+		cm.saveTimer.Stop()
+	}
+
+	// Save all clients before closing
+	for _, client := range cm.clients {
+		if err := client.SaveState(); err != nil {
+			fmt.Printf("Warning: Failed to save state for %s: %v\n", client.ID, err)
+		}
+		
+		if err := client.Close(); err != nil {
+			fmt.Printf("Warning: Failed to close client %s: %v\n", client.ID, err)
+		}
+	}
+
+	// Clear map
+	cm.clients = make(map[string]*Client)
+}
+
+

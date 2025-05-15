@@ -1,0 +1,59 @@
+{{ define "content" }}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                System Test Page
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">Template Rendering Test</h5>
+                <p class="card-text">
+                    If you can see this page, template rendering is working correctly.
+                </p>
+                <div class="alert alert-info">
+                    <strong>Server Info:</strong>
+                    <ul>
+                        <li>Go version: {{ .GoVersion }}</li>
+                        <li>Timestamp: {{ .Timestamp }}</li>
+                        <li>Template system: Working</li>
+                    </ul>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>CSS Test</h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="p-3 mb-3 bg-primary text-white">Primary</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 mb-3 bg-success text-white">Success</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 mb-3 bg-danger text-white">Danger</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 mb-3 bg-warning text-dark">Warning</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>JavaScript Test</h6>
+                    <button id="js-test-btn" class="btn btn-primary">Click Me</button>
+                    <span id="js-test-result" class="ms-3"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+    $(document).ready(function() {
+        $('#js-test-btn').on('click', function() {
+            $('#js-test-result').html('<span class="text-success">JavaScript is working!</span>');
+        });
+    });
+</script>
+{{ end }}

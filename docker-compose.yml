@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  whatsapp-gateway:
+    build: .
+    container_name: go-simple-whatsapp-gateway
+    ports:
+      - "8080:8080"
+    volumes:
+      - whatsapp-data:/app/whatsapp-data
+    environment:
+      - LISTEN_ADDR=:8080
+      - API_KEY=changeme
+      - WHATSAPP_DATA_DIR=/app/whatsapp-data
+    restart: unless-stopped
+
+volumes:
+  whatsapp-data:
+    driver: local

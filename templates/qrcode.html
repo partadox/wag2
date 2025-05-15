@@ -1,0 +1,137 @@
+{{ define "content" }}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                QR Code Authentication
+            </div>
+            <div class="card-body text-center">
+                <h5 class="card-title">Connect WhatsApp Account</h5>
+                <p class="card-text mb-4">
+                    Scan this QR code with your WhatsApp app on your phone to log in.
+                </p>
+                
+                <div id="qr-code-container" class="mb-4">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Generating QR code...</p>
+                </div>
+
+                <div id="qr-success" class="alert alert-success" style="display:none;">
+                    <i class="bi bi-check-circle-fill"></i> Successfully connected! 
+                    <a href="/ui/clients/{{ .Client.ID }}" class="alert-link">View client details</a>
+                </div>
+
+                <div id="qr-error" class="alert alert-danger" style="display:none;">
+                    <i class="bi bi-exclamation-triangle-fill"></i> 
+                    <span id="error-message">Error generating QR code.</span>
+                </div>
+
+                <div class="mb-3">
+                    <button id="refresh-qr-btn" class="btn btn-primary">Refresh QR Code</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+    $(document).ready(function() {
+        const clientId = "{{ .Client.ID }}";
+        let statusCheckInterval;
+        
+        // Generate QR code on page load
+        generateQRCode();
+        
+        // Refresh QR code button
+        $('#refresh-qr-btn').on('click', function() {
+            generateQRCode();
+        });
+        
+        // Function to generate QR code
+        function generateQRCode() {
+            // Reset UI
+            $('#qr-code-container').html(`
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted">Generating QR code...</p>
+            `);
+            $('#qr-success').hide();
+            $('#qr-error').hide();
+            
+            // Stop any existing status check
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+            
+            // Request QR code
+            $.ajax({
+                url: '/api/clients/' + clientId + '/qr',
+                method: 'GET',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                success: function(response) {
+                    if (response.qr_code) {
+                        // Display QR code
+                        const qrCodeImg = $('<img>')
+                            .attr('src', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' + encodeURIComponent(response.qr_code))
+                            .attr('alt', 'WhatsApp QR Code')
+                            .attr('title', 'Scan with WhatsApp to connect');
+                        
+                        $('#qr-code-container').empty().append(qrCodeImg);
+                        
+                        // Start polling for status changes
+                        startStatusCheck();
+                    } else {
+                        showError('Invalid response received');
+                    }
+                },
+                error: function(xhr) {
+                    showError(xhr.responseJSON?.error || 'Failed to generate QR code');
+                }
+            });
+        }
+        
+        // Function to start polling for status
+        function startStatusCheck() {
+            statusCheckInterval = setInterval(function() {
+                $.ajax({
+                    url: '/api/clients/' + clientId,
+                    method: 'GET',
+                    headers: {
+                        'X-API-Key': getApiKey()
+                    },
+                    success: function(response) {
+                        if (response.logged_in) {
+                            // Client is logged in, show success
+                            clearInterval(statusCheckInterval);
+                            $('#qr-code-container').hide();
+                            $('#qr-success').show();
+                        }
+                    },
+                    error: function() {
+                        // Ignore errors here, we're just polling
+                    }
+                });
+            }, 3000); // Check every 3 seconds
+        }
+        
+        // Function to show error
+        function showError(message) {
+            $('#qr-code-container').hide();
+            $('#error-message').text(message);
+            $('#qr-error').show();
+        }
+        
+        // Helper function to get API key
+        function getApiKey() {
+            return localStorage.getItem('api_key') || prompt('Please enter your API key:');
+        }
+    });
+</script>
+{{ end }}

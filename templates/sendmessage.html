@@ -1,0 +1,124 @@
+{{ define "content" }}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Send WhatsApp Message
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">Client: {{ .Client.ID }}</h5>
+                
+                <div class="alert alert-info mb-4">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <strong>Status:</strong>
+                            {{ if eq .Client.Status "connected" }}
+                                <span class="text-success">Connected</span>
+                            {{ else if eq .Client.Status "disconnected" }}
+                                <span class="text-warning">Disconnected</span>
+                            {{ else if eq .Client.Status "logged_out" }}
+                                <span class="text-danger">Logged Out</span>
+                            {{ else if eq .Client.Status "error" }}
+                                <span class="text-danger">Error</span>
+                            {{ else }}
+                                <span class="text-secondary">{{ .Client.Status }}</span>
+                            {{ end }}
+                            <br>
+                            {{ if .Client.PushName }}<strong>User:</strong> {{ .Client.PushName }}{{ end }}
+                            {{ if .Client.PhoneNumber }}<br><strong>Phone:</strong> {{ .Client.PhoneNumber }}{{ end }}
+                        </div>
+                    </div>
+                </div>
+                
+                {{ if not .Client.LoggedIn }}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle-fill"></i> 
+                    This client is not logged in. Please <a href="/ui/clients/{{ .Client.ID }}">connect</a> before sending messages.
+                </div>
+                {{ else }}
+                <form id="send-message-form">
+                    <div class="mb-3">
+                        <label for="recipient" class="form-label">Recipient Phone Number</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="recipient" placeholder="e.g. +628123456789" required>
+                        </div>
+                        <div class="form-text">Include the country code with + symbol (e.g. +1 for US, +44 for UK).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea class="form-control" id="message" rows="5" placeholder="Enter your message" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Message</button>
+                </form>
+                
+                <div id="send-result" class="mt-4" style="display:none;">
+                    <div id="send-success" class="alert alert-success" style="display:none;">
+                        <i class="bi bi-check-circle-fill"></i> Message sent successfully!
+                    </div>
+                    <div id="send-error" class="alert alert-danger" style="display:none;">
+                        <i class="bi bi-exclamation-triangle-fill"></i> 
+                        <span id="error-message">Error sending message.</span>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "scripts" }}
+<script>
+    $(document).ready(function() {
+        const clientId = "{{ .Client.ID }}";
+        
+        // Send message form submission
+        $('#send-message-form').on('submit', function(e) {
+            e.preventDefault();
+            
+            const recipient = $('#recipient').val();
+            const message = $('#message').val();
+            
+            if (!recipient || !message) {
+                alert('Please enter both recipient and message');
+                return;
+            }
+            
+            // Hide any previous results
+            $('#send-result').hide();
+            $('#send-success').hide();
+            $('#send-error').hide();
+            
+            // Send the message
+            $.ajax({
+                url: '/api/clients/' + clientId + '/send',
+                method: 'POST',
+                headers: {
+                    'X-API-Key': getApiKey()
+                },
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    recipient: recipient,
+                    message: message
+                }),
+                success: function() {
+                    // Show success
+                    $('#send-result').show();
+                    $('#send-success').show();
+                },
+                error: function(xhr) {
+                    // Show error
+                    $('#error-message').text(xhr.responseJSON?.error || 'Failed to send message');
+                    $('#send-result').show();
+                    $('#send-error').show();
+                }
+            });
+        });
+        
+        // Helper function to get API key
+        function getApiKey() {
+            return localStorage.getItem('api_key') || prompt('Please enter your API key:');
+        }
+    });
+</script>
+{{ end }}
